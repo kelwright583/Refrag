@@ -2,9 +2,11 @@
  * Evidence card component for list display
  */
 
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { EvidenceWithTags } from '@/lib/types/evidence';
+import { getSignedUrl } from '@/lib/api/evidence';
 import { colors, typography } from '@/lib/theme/colors';
 
 interface EvidenceCardProps {
@@ -20,6 +22,25 @@ const MEDIA_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export function EvidenceCard({ evidence, onPress, onDelete }: EvidenceCardProps) {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [thumbnailError, setThumbnailError] = useState(false);
+
+  const isPhoto = evidence.media_type === 'photo';
+
+  useEffect(() => {
+    if (!isPhoto || !evidence.storage_path) return;
+
+    let cancelled = false;
+    getSignedUrl(evidence.storage_path)
+      .then((url) => {
+        if (!cancelled) setThumbnailUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setThumbnailError(true);
+      });
+
+    return () => { cancelled = true; };
+  }, [evidence.storage_path, isPhoto]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -27,16 +48,41 @@ export function EvidenceCard({ evidence, onPress, onDelete }: EvidenceCardProps)
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const renderThumbnail = () => {
+    if (isPhoto && thumbnailUrl && !thumbnailError) {
+      return (
+        <Image
+          source={{ uri: thumbnailUrl }}
+          style={styles.thumbnail}
+          resizeMode="cover"
+          onError={() => setThumbnailError(true)}
+        />
+      );
+    }
+
+    if (isPhoto && !thumbnailUrl && !thumbnailError) {
+      return (
+        <View style={styles.iconContainer}>
+          <ActivityIndicator size="small" color={colors.muted} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.iconContainer}>
+        <Ionicons
+          name={MEDIA_ICONS[evidence.media_type] || 'attach-outline'}
+          size={22}
+          color={colors.charcoal}
+        />
+      </View>
+    );
+  };
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Ionicons
-            name={MEDIA_ICONS[evidence.media_type] || 'attach-outline'}
-            size={22}
-            color={colors.charcoal}
-          />
-        </View>
+        {renderThumbnail()}
         <View style={styles.info}>
           <Text style={styles.fileName} numberOfLines={1}>
             {evidence.file_name}
@@ -108,6 +154,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  thumbnail: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: colors.charcoal + '0A',
   },
   info: {
     flex: 1,

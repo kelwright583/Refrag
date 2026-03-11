@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getEvidence,
+  getSignedUrl,
   createEvidence,
   deleteEvidence,
   addEvidenceTags,
@@ -17,6 +18,15 @@ export function useEvidence(caseId: string) {
     queryKey: ['evidence', caseId],
     queryFn: () => getEvidence(caseId),
     enabled: !!caseId,
+  });
+}
+
+export function useSignedUrl(storagePath: string | undefined) {
+  return useQuery({
+    queryKey: ['signed-url', storagePath],
+    queryFn: () => getSignedUrl(storagePath!),
+    enabled: !!storagePath,
+    staleTime: 50 * 60 * 1000, // 50 min (URLs expire at 60 min)
   });
 }
 
