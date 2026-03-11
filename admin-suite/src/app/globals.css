@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-body: 'Inter', sans-serif;
+  --font-heading: 'Inter', sans-serif;
+  --font-subtitle: 'Anek Bangla Expanded', sans-serif;
+  --color-charcoal: #30313A;
+  --color-accent: #C72A00;
+  --color-background: #EAE4DC;
+  --color-navy: #1F2933;
+}
+
+body {
+  color: #30313A;
+  background: #ffffff;
+}

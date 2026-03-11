@@ -1,0 +1,10 @@
+{
+  "name": "refrag-database",
+  "private": true,
+  "scripts": {
+    "migrate": "node run-migrations.js"
+  },
+  "devDependencies": {
+    "pg": "^8.11.3"
+  }
+}

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-body: 'Inter', sans-serif;
+  --font-heading: 'Inter', sans-serif;
+  --font-subtitle: 'Anek Bangla Expanded', sans-serif;
+  --color-charcoal: #30313A;
+  --color-accent: #C72A00;
+  --color-background: #EAE4DC;
+  --color-navy: #1F2933;
+}
+
+body {
+  color: #30313A;
+  background: #EAE4DC;
+}
+
+/* ── Print styles for assessment report ─────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm 14mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide everything except the report */
+  body > * { display: none; }
+  #assessment-report,
+  #assessment-report * {
+    display: revert;
+    visibility: visible;
+  }
+
+  #assessment-report {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+
+  .print\:hidden { display: none !important; }
+  .print\:p-0 { padding: 0 !important; }
+  .print\:bg-white { background: white !important; }
+  .print\:shadow-none { box-shadow: none !important; }
+  .print\:max-w-none { max-width: none !important; }
+
+  /* Prevent unwanted page breaks inside sections */
+  section, tr, .break-inside-avoid-page {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure table headers repeat on new pages */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+}
