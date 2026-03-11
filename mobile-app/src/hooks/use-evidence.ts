@@ -6,12 +6,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getEvidence,
   getSignedUrl,
+  getSignedUrls,
   createEvidence,
   deleteEvidence,
   addEvidenceTags,
   removeEvidenceTag,
 } from '@/lib/api/evidence';
-import { CreateEvidenceInput } from '@/lib/types/evidence';
+import { EvidenceWithTags, CreateEvidenceInput } from '@/lib/types/evidence';
 
 export function useEvidence(caseId: string) {
   return useQuery({
@@ -26,7 +27,23 @@ export function useSignedUrl(storagePath: string | undefined) {
     queryKey: ['signed-url', storagePath],
     queryFn: () => getSignedUrl(storagePath!),
     enabled: !!storagePath,
-    staleTime: 50 * 60 * 1000, // 50 min (URLs expire at 60 min)
+    staleTime: 50 * 60 * 1000,
+  });
+}
+
+/** Batch-fetch signed URLs for all photo evidence in one request. */
+export function useEvidenceSignedUrls(evidence: EvidenceWithTags[] | undefined) {
+  const photoPaths = (evidence ?? [])
+    .filter((e) => e.media_type === 'photo' && e.storage_path)
+    .map((e) => e.storage_path);
+
+  const cacheKey = photoPaths.slice().sort().join(',');
+
+  return useQuery({
+    queryKey: ['signed-urls', cacheKey],
+    queryFn: () => getSignedUrls(photoPaths),
+    enabled: photoPaths.length > 0,
+    staleTime: 50 * 60 * 1000,
   });
 }
 

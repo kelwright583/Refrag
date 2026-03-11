@@ -14,7 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useEvidence, useDeleteEvidence } from '@/hooks/use-evidence';
+import { useEvidence, useDeleteEvidence, useEvidenceSignedUrls } from '@/hooks/use-evidence';
 import { EvidenceCard } from '@/components/EvidenceCard';
 import { EvidenceCaptureModal } from '@/components/EvidenceCaptureModal';
 import { AppHeader } from '@/components/AppHeader';
@@ -27,6 +27,7 @@ export default function CaseEvidenceScreen() {
   const [showCaptureModal, setShowCaptureModal] = useState(false);
 
   const { data: evidence, isLoading, refetch } = useEvidence(id);
+  const { data: signedUrlMap } = useEvidenceSignedUrls(evidence);
   const deleteEvidence = useDeleteEvidence();
   const queueItems = useUploadQueueStore((state) => state.items);
   const pendingCount = queueItems.filter((item) => item.status === 'pending' || item.status === 'uploading').length;
@@ -86,6 +87,7 @@ export default function CaseEvidenceScreen() {
           renderItem={({ item }) => (
             <EvidenceCard
               evidence={item}
+              thumbnailUrl={signedUrlMap?.[item.storage_path]}
               onPress={() => Alert.alert('Evidence', `Viewing ${item.file_name}`)}
               onDelete={() => handleDelete(item.id)}
             />

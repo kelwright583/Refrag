@@ -1,16 +1,18 @@
 /**
- * Evidence card component for list display
+ * Evidence card component for list display.
+ * Receives an optional thumbnailUrl from the parent (bulk-fetched)
+ * rather than firing its own signed URL request.
  */
 
-import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { EvidenceWithTags } from '@/lib/types/evidence';
-import { getSignedUrl } from '@/lib/api/evidence';
 import { colors, typography } from '@/lib/theme/colors';
 
 interface EvidenceCardProps {
   evidence: EvidenceWithTags;
+  thumbnailUrl?: string;
   onPress: () => void;
   onDelete?: () => void;
 }
@@ -21,26 +23,8 @@ const MEDIA_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   document: 'document-outline',
 };
 
-export function EvidenceCard({ evidence, onPress, onDelete }: EvidenceCardProps) {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+export function EvidenceCard({ evidence, thumbnailUrl, onPress, onDelete }: EvidenceCardProps) {
   const [thumbnailError, setThumbnailError] = useState(false);
-
-  const isPhoto = evidence.media_type === 'photo';
-
-  useEffect(() => {
-    if (!isPhoto || !evidence.storage_path) return;
-
-    let cancelled = false;
-    getSignedUrl(evidence.storage_path)
-      .then((url) => {
-        if (!cancelled) setThumbnailUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setThumbnailError(true);
-      });
-
-    return () => { cancelled = true; };
-  }, [evidence.storage_path, isPhoto]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -49,7 +33,7 @@ export function EvidenceCard({ evidence, onPress, onDelete }: EvidenceCardProps)
   };
 
   const renderThumbnail = () => {
-    if (isPhoto && thumbnailUrl && !thumbnailError) {
+    if (thumbnailUrl && !thumbnailError) {
       return (
         <Image
           source={{ uri: thumbnailUrl }}
@@ -57,14 +41,6 @@ export function EvidenceCard({ evidence, onPress, onDelete }: EvidenceCardProps)
           resizeMode="cover"
           onError={() => setThumbnailError(true)}
         />
-      );
-    }
-
-    if (isPhoto && !thumbnailUrl && !thumbnailError) {
-      return (
-        <View style={styles.iconContainer}>
-          <ActivityIndicator size="small" color={colors.muted} />
-        </View>
       );
     }
 

@@ -183,10 +183,30 @@ export async function deleteEvidence(evidenceId: string, caseId: string): Promis
 export async function getSignedUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from('evidence')
-    .createSignedUrl(storagePath, 3600); // 1 hour expiry
+    .createSignedUrl(storagePath, 3600);
 
   if (error) throw error;
   return data.signedUrl;
+}
+
+export async function getSignedUrls(
+  storagePaths: string[]
+): Promise<Record<string, string>> {
+  if (storagePaths.length === 0) return {};
+
+  const { data, error } = await supabase.storage
+    .from('evidence')
+    .createSignedUrls(storagePaths, 3600);
+
+  if (error) throw error;
+
+  const urlMap: Record<string, string> = {};
+  data?.forEach((item) => {
+    if (item.signedUrl && !item.error) {
+      urlMap[item.path] = item.signedUrl;
+    }
+  });
+  return urlMap;
 }
 
 export async function addEvidenceTags(
