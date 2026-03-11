@@ -47,17 +47,34 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
     e.preventDefault()
     setDragging(false)
     const file = e.dataTransfer.files[0]
-    if (file) processFile()
+    if (file) processFile(file)
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) processFile()
+    const file = e.target.files?.[0]
+    if (file) processFile(file)
     e.target.value = ''
   }
 
-  const processFile = () => {
+  const processFile = async (file: File) => {
     setOcrNote('Processing parts quotation with OCR…')
-    setTimeout(() => setOcrNote('OCR complete. Review and correct values below.'), 1500)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/ai/ocr', { method: 'POST', body })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'OCR request failed' }))
+        throw new Error(err.error || `OCR failed (${res.status})`)
+      }
+      const { text, confidence } = await res.json()
+      if (!text?.trim()) {
+        setOcrNote('OCR completed but no text was detected. Try a clearer image.')
+        return
+      }
+      setOcrNote(`OCR complete (${Math.round(confidence * 100)}% confidence). Review and correct values below.`)
+    } catch (err: any) {
+      setOcrNote(`OCR failed: ${err.message}`)
+    }
   }
 
   const partsQuoteDocs = assessment.assessment_documents?.filter((d) => d.document_type === 'parts_quote') ?? []

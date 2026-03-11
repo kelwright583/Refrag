@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Upload, FileText } from 'lucide-react'
 import { useUpsertVehicleValues } from '@/hooks/use-assessments'
 import { Field, Section, ZarInput, Select, SaveBar, formatZar } from './shared'
@@ -57,20 +57,37 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
     setSaved(true)
   }
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
+  const processFile = async (file: File) => {
+    setOcrNote('Processing TransUnion / MM Guide printout with OCR…')
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/ai/ocr', { method: 'POST', body })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'OCR request failed' }))
+        throw new Error(err.error || `OCR failed (${res.status})`)
+      }
+      const { text, confidence } = await res.json()
+      if (!text?.trim()) {
+        setOcrNote('OCR completed but no text was detected. Try a clearer image.')
+        return
+      }
+      setOcrNote(`OCR complete (${Math.round(confidence * 100)}% confidence). Review and correct the values below.`)
+    } catch (err: any) {
+      setOcrNote(`OCR failed: ${err.message}`)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setDragging(false)
     const file = e.dataTransfer.files[0]
-    if (!file) return
-    setOcrNote('Processing TransUnion / MM Guide printout with OCR…')
-    setTimeout(() => setOcrNote('OCR complete. Review and correct the values below.'), 1500)
-  }, [])
+    if (file) processFile(file)
+  }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setOcrNote('Processing TransUnion / MM Guide printout with OCR…')
-      setTimeout(() => setOcrNote('OCR complete. Review and correct the values below.'), 1500)
-    }
+    const file = e.target.files?.[0]
+    if (file) processFile(file)
     e.target.value = ''
   }
 

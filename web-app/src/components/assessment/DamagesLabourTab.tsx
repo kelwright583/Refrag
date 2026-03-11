@@ -130,9 +130,25 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
     e.target.value = ''
   }
 
-  const processFile = (_file: File) => {
+  const processFile = async (file: File) => {
     setOcrNote('Processing repairer quotation with OCR…')
-    setTimeout(() => setOcrNote('OCR complete. Review and add line items from the extracted data.'), 1500)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/ai/ocr', { method: 'POST', body })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'OCR request failed' }))
+        throw new Error(err.error || `OCR failed (${res.status})`)
+      }
+      const { text, confidence } = await res.json()
+      if (!text?.trim()) {
+        setOcrNote('OCR completed but no text was detected. Try a clearer image.')
+        return
+      }
+      setOcrNote(`OCR complete (${Math.round(confidence * 100)}% confidence). Review and add line items from the extracted data.`)
+    } catch (err: any) {
+      setOcrNote(`OCR failed: ${err.message}`)
+    }
   }
 
   const grandTotal = assessment.repair_line_items.reduce((sum, item) => {
