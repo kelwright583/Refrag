@@ -46,7 +46,7 @@ export default async function OnboardingLayout({
         </Link>
         <span className="text-sm text-muted">Setup</span>
       </header>
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="flex-1 flex items-start justify-center p-4 sm:p-6 pt-8 sm:pt-12">
         {children}
       </main>
     </div>

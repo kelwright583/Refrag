@@ -4,8 +4,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-async function verifyStaff(supabase: any): Promise<string> {
+async function verifyStaff(supabase: SupabaseClient): Promise<string> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -43,11 +45,19 @@ export async function POST(
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Note: Password reset requires admin API access
-    // For MVP, we'll log the action
-    // In production, use Supabase Admin API: supabase.auth.admin.generateLink()
+    const adminClient = createAdminClient()
 
-    // Log admin audit event
+    const { data: { user: targetUser }, error: userError } = await adminClient.auth.admin.getUserById(params.userId)
+    if (userError || !targetUser?.email) {
+      throw new Error('Could not find user email')
+    }
+
+    const { error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'recovery',
+      email: targetUser.email,
+    })
+    if (linkError) throw linkError
+
     await supabase.from('admin_audit_log').insert({
       staff_user_id: staffId,
       action: 'PASSWORD_RESET_TRIGGERED',
@@ -55,12 +65,13 @@ export async function POST(
       target_id: params.userId,
       details: {
         triggered_by: user?.id,
+        target_email: targetUser.email,
       },
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Password reset logged (requires admin API for actual reset)',
+      message: 'Password reset link generated successfully',
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

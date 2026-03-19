@@ -15,6 +15,7 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
   const upsertParts = useUpsertPartsAssessment(assessment.id)
   const [saved, setSaved] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [ocrStatus, setOcrStatus] = useState<'idle' | 'uploading' | 'extracting' | 'parsing' | 'done' | 'error'>('idle')
   const [ocrNote, setOcrNote] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -57,22 +58,53 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
   }
 
   const processFile = async (file: File) => {
-    setOcrNote('Processing parts quotation with OCR…')
+    setOcrStatus('uploading')
+    setOcrNote('Uploading parts quotation…')
     try {
       const body = new FormData()
       body.append('file', file)
-      const res = await fetch('/api/ai/ocr', { method: 'POST', body })
+      body.append('document_type', 'parts_quote')
+
+      setOcrStatus('extracting')
+      setOcrNote('Extracting text from document…')
+
+      const res = await fetch('/api/ai/ocr-extract', { method: 'POST', body })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'OCR request failed' }))
         throw new Error(err.error || `OCR failed (${res.status})`)
       }
-      const { text, confidence } = await res.json()
-      if (!text?.trim()) {
-        setOcrNote('OCR completed but no text was detected. Try a clearer image.')
+
+      setOcrStatus('parsing')
+      setOcrNote('Parsing parts quotation fields…')
+
+      const data = await res.json()
+
+      if (!data.fields) {
+        setOcrStatus('done')
+        setOcrNote(data.note || 'No text could be extracted. Try a clearer image or text-based PDF.')
         return
       }
-      setOcrNote(`OCR complete (${Math.round(confidence * 100)}% confidence). Review and correct values below.`)
+
+      const f = data.fields
+      setForm((prev) => ({
+        ...prev,
+        supplier_name: f.supplier_name || prev.supplier_name,
+        supplier_contact: f.supplier_contact || prev.supplier_contact,
+        parts_amount_excl_vat: typeof f.total_amount === 'number' ? f.total_amount : prev.parts_amount_excl_vat,
+      }))
+      setSaved(false)
+
+      const avgConf = data.confidence
+        ? Math.round(Object.values(data.confidence as Record<string, number>).reduce((a, b) => a + b, 0) / Math.max(Object.keys(data.confidence).length, 1) * 100)
+        : 0
+
+      setOcrStatus('done')
+      setOcrNote(
+        `Extraction complete (${avgConf}% avg. confidence). ` +
+        `Supplier details and parts amount populated — review and correct below.`
+      )
     } catch (err: any) {
+      setOcrStatus('error')
       setOcrNote(`OCR failed: ${err.message}`)
     }
   }
@@ -97,7 +129,24 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
           <p className="text-sm font-medium text-charcoal">Drop parts quotation here or click to browse</p>
           <p className="text-xs text-slate">PDF or image — OCR extracts amounts; stored for Report Pack</p>
         </div>
-        {ocrNote && <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">{ocrNote}</p>}
+        {ocrStatus !== 'idle' && ocrStatus !== 'done' && ocrStatus !== 'error' && (
+          <div className="mt-3 flex items-center gap-3 text-sm text-copper bg-copper/5 border border-copper/20 rounded-lg px-4 py-2.5">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-copper border-t-transparent" />
+            {ocrNote}
+          </div>
+        )}
+        {ocrNote && (ocrStatus === 'done' || ocrStatus === 'error') && (
+          <div className={`mt-2 text-xs rounded px-3 py-1.5 ${
+            ocrStatus === 'error'
+              ? 'text-red-700 bg-red-50 border border-red-200'
+              : 'text-amber-700 bg-amber-50 border border-amber-200'
+          }`}>
+            {ocrNote}
+            {ocrStatus === 'error' && (
+              <button onClick={() => fileInputRef.current?.click()} className="ml-2 underline font-medium">Retry</button>
+            )}
+          </div>
+        )}
         {partsQuoteDocs.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {partsQuoteDocs.map((doc) => (

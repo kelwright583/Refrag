@@ -93,6 +93,7 @@ export async function POST(
         org_id: orgId,
         case_id: params.id,
         report_id: body.report_id || null,
+        assessment_id: body.assessment_id || null,
         export_type: body.export_type || 'assessor_pack',
         meta: {},
       })

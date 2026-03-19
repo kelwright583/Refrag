@@ -2,8 +2,16 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useAssessment, useAssessmentSettings } from '@/hooks/use-assessments'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Printer, Download } from 'lucide-react'
 import { AssessmentReport } from '@/components/assessment/AssessmentReport'
+import type { OrgStationery } from '@/components/assessment/AssessmentReport'
+
+async function fetchStationery(): Promise<OrgStationery | null> {
+  const res = await fetch('/api/settings/stationery')
+  if (!res.ok) return null
+  return res.json()
+}
 
 export default function AssessmentReportPage() {
   const params = useParams()
@@ -13,6 +21,11 @@ export default function AssessmentReportPage() {
 
   const { data: assessment, isLoading } = useAssessment(assessmentId)
   const { data: settings } = useAssessmentSettings()
+  const { data: stationery } = useQuery({
+    queryKey: ['org-stationery'],
+    queryFn: fetchStationery,
+    staleTime: 1000 * 60 * 10,
+  })
 
   const handlePrint = () => window.print()
 
@@ -59,7 +72,7 @@ export default function AssessmentReportPage() {
 
       {/* Report */}
       <div className="py-8 px-4 sm:px-8 print:p-0 print:bg-white">
-        <AssessmentReport assessment={assessment} settings={settings ?? null} />
+        <AssessmentReport assessment={assessment} settings={settings ?? null} stationery={stationery} />
       </div>
     </div>
   )

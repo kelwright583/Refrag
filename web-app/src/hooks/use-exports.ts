@@ -7,9 +7,10 @@ import {
   getExports,
   createExport,
   generateExportPDF,
+  generateAssessmentPDF,
   getExportDownloadUrl,
 } from '@/lib/api/exports'
-import { CreateExportInput } from '@/lib/types/export'
+import { CreateExportInput, GenerateAssessmentPdfInput } from '@/lib/types/export'
 
 /**
  * Get all exports for a case
@@ -38,14 +39,28 @@ export function useCreateExport() {
 }
 
 /**
- * Generate PDF for export
+ * Generate PDF for export (legacy report-based)
  */
 export function useGenerateExportPDF() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (exportId: string) => generateExportPDF(exportId),
-    onSuccess: (data) => {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exports'] })
+    },
+  })
+}
+
+/**
+ * Generate assessment PDF (Phase 8)
+ */
+export function useGenerateAssessmentPDF() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: GenerateAssessmentPdfInput) => generateAssessmentPDF(input),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exports'] })
     },
   })
@@ -59,6 +74,6 @@ export function useExportDownloadUrl(exportId: string, enabled: boolean = true) 
     queryKey: ['export-download-url', exportId],
     queryFn: () => getExportDownloadUrl(exportId),
     enabled: enabled && !!exportId,
-    staleTime: 1000 * 60 * 55, // 55 minutes (signed URLs are valid for 1 hour)
+    staleTime: 1000 * 60 * 55,
   })
 }

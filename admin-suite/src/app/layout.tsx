@@ -5,6 +5,8 @@
 import type { Metadata } from 'next'
 import { Inter, Anek_Bangla } from 'next/font/google'
 import './globals.css'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ToastProvider } from '@/components/Toast'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const anekBangla = Anek_Bangla({
@@ -26,7 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${anekBangla.variable}`} suppressHydrationWarning>
       <body className="font-body" style={{ fontFamily: inter.style.fontFamily }} suppressHydrationWarning>
-        {children}
+        <ErrorBoundary>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

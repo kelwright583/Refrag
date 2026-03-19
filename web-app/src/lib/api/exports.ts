@@ -2,7 +2,7 @@
  * Export API functions (client-side)
  */
 
-import { Export, ExportWithDetails, CreateExportInput } from '@/lib/types/export'
+import { Export, ExportWithDetails, CreateExportInput, GenerateAssessmentPdfInput } from '@/lib/types/export'
 
 /**
  * Get all exports for a case
@@ -10,9 +10,7 @@ import { Export, ExportWithDetails, CreateExportInput } from '@/lib/types/export
 export async function getExports(caseId: string): Promise<ExportWithDetails[]> {
   const response = await fetch(`/api/cases/${caseId}/exports`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   })
 
   if (!response.ok) {
@@ -32,9 +30,7 @@ export async function createExport(
 ): Promise<Export> {
   const response = await fetch(`/api/cases/${caseId}/exports`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
 
@@ -47,14 +43,12 @@ export async function createExport(
 }
 
 /**
- * Generate PDF for export
+ * Generate PDF for export (legacy report-based)
  */
 export async function generateExportPDF(exportId: string): Promise<Export> {
   const response = await fetch(`/api/exports/${exportId}/generate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   })
 
   if (!response.ok) {
@@ -66,14 +60,32 @@ export async function generateExportPDF(exportId: string): Promise<Export> {
 }
 
 /**
+ * Generate assessment PDF via new Phase 8 route
+ */
+export async function generateAssessmentPDF(
+  input: GenerateAssessmentPdfInput
+): Promise<{ export_id: string; storage_path: string; download_url: string }> {
+  const response = await fetch('/api/export/generate-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to generate assessment PDF')
+  }
+
+  return response.json()
+}
+
+/**
  * Get download URL for export
  */
 export async function getExportDownloadUrl(exportId: string): Promise<string> {
   const response = await fetch(`/api/exports/${exportId}/download`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
   })
 
   if (!response.ok) {

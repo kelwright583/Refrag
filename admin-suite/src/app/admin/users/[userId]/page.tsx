@@ -8,12 +8,14 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser, useUpdateUser, useTriggerPasswordReset } from '@/hooks/use-users'
 import { ArrowLeft, Save, User, Building2, Key, Edit2 } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 
 export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
   const userId = params.userId as string
   const [isEditing, setIsEditing] = useState(false)
+  const { addToast } = useToast()
 
   const { data: user, isLoading } = useUser(userId)
   const updateUser = useUpdateUser()
@@ -32,9 +34,9 @@ export default function UserDetailPage() {
         },
       })
       setIsEditing(false)
-      alert('User update logged (requires admin API for actual disable/enable)')
+      addToast('User updated successfully', 'success')
     } catch (error: any) {
-      alert(error.message || 'Failed to update user')
+      addToast(error.message || 'Failed to update user', 'error')
     }
   }
 
@@ -42,9 +44,9 @@ export default function UserDetailPage() {
     if (confirm('Are you sure you want to trigger a password reset for this user?')) {
       try {
         await triggerPasswordReset.mutateAsync(userId)
-        alert('Password reset logged (requires admin API for actual reset)')
+        addToast('Password reset triggered', 'success')
       } catch (error: any) {
-        alert(error.message || 'Failed to trigger password reset')
+        addToast(error.message || 'Failed to trigger password reset', 'error')
       }
     }
   }

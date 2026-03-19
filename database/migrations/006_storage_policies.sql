@@ -22,6 +22,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- ============================================================================
 
 -- Allow authenticated users to upload to their org's folder
+DROP POLICY IF EXISTS "evidence_storage_insert" ON storage.objects;
 CREATE POLICY "evidence_storage_insert"
   ON storage.objects FOR INSERT
   TO authenticated
@@ -36,6 +37,7 @@ CREATE POLICY "evidence_storage_insert"
   );
 
 -- Allow authenticated users to read from their org's folder
+DROP POLICY IF EXISTS "evidence_storage_select" ON storage.objects;
 CREATE POLICY "evidence_storage_select"
   ON storage.objects FOR SELECT
   TO authenticated
@@ -50,6 +52,7 @@ CREATE POLICY "evidence_storage_select"
   );
 
 -- Allow authenticated users to update files in their org's folder
+DROP POLICY IF EXISTS "evidence_storage_update" ON storage.objects;
 CREATE POLICY "evidence_storage_update"
   ON storage.objects FOR UPDATE
   TO authenticated
@@ -64,6 +67,7 @@ CREATE POLICY "evidence_storage_update"
   );
 
 -- Allow authenticated users to delete from their org's folder
+DROP POLICY IF EXISTS "evidence_storage_delete" ON storage.objects;
 CREATE POLICY "evidence_storage_delete"
   ON storage.objects FOR DELETE
   TO authenticated
@@ -75,4 +79,14 @@ CREATE POLICY "evidence_storage_delete"
       WHERE org_members.org_id = (storage.foldername(name))[2]::uuid
         AND org_members.user_id = auth.uid()
     )
+  );
+
+-- Staff can read all evidence for support purposes
+DROP POLICY IF EXISTS "evidence_storage_staff_select" ON storage.objects;
+CREATE POLICY "evidence_storage_staff_select"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'evidence'
+    AND EXISTS (SELECT 1 FROM staff_users WHERE user_id = auth.uid() AND is_active = true)
   );

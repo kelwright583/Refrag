@@ -16,7 +16,7 @@ export function PWAInstallPrompt() {
       navigator.serviceWorker
         .register('/sw.js')
         .then(() => {})
-        .catch(() => {})
+        .catch((err) => console.error('SW registration failed:', err))
     }
 
     // Capture install prompt (for "Add to Home Screen")

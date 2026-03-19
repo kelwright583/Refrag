@@ -129,7 +129,10 @@ export default function InvoiceDetailPage() {
         setOverallDiscountPct(Number(data.overall_discount_pct) || 0)
         setNotes(data.notes || '')
       })
-      .catch(() => setInvoice(null))
+      .catch((err) => {
+        console.error('Failed to load invoice:', err)
+        setInvoice(null)
+      })
       .finally(() => setLoading(false))
   }
 
@@ -138,7 +141,7 @@ export default function InvoiceDetailPage() {
     fetch('/api/assessment-rates')
       .then((r) => r.json())
       .then((d) => setRates(Array.isArray(d) ? d : []))
-      .catch(() => {})
+      .catch((err) => console.error('Failed to load rates:', err))
   }, [id])
 
   const totals = useMemo(() => {

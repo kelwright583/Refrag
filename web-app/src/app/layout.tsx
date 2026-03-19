@@ -3,6 +3,7 @@ import { Inter, Anek_Bangla } from 'next/font/google'
 import './globals.css'
 import { ReactQueryProvider } from '@/lib/react-query/provider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ToastProvider } from '@/components/Toast'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
 
@@ -33,10 +34,12 @@ export default function RootLayout({
       <body className="font-body" style={{ fontFamily: inter.style.fontFamily }} suppressHydrationWarning>
         <ErrorBoundary>
           <ReactQueryProvider>
-            <GoogleMapsProvider>
-              {children}
-              <PWAInstallPrompt />
-            </GoogleMapsProvider>
+            <ToastProvider>
+              <GoogleMapsProvider>
+                {children}
+                <PWAInstallPrompt />
+              </GoogleMapsProvider>
+            </ToastProvider>
           </ReactQueryProvider>
         </ErrorBoundary>
       </body>

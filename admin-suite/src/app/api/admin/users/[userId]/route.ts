@@ -4,9 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { UpdateUserInput } from '@/lib/types/admin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-async function verifyStaff(supabase: any): Promise<string> {
+async function verifyStaff(supabase: SupabaseClient): Promise<string> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -40,7 +42,10 @@ export async function GET(
     const supabase = await createClient()
     await verifyStaff(supabase)
 
-    // Get user org memberships
+    const adminClient = createAdminClient()
+    const { data: { user: targetUser }, error: userError } = await adminClient.auth.admin.getUserById(params.userId)
+    if (userError) throw userError
+
     const { data: memberships, error } = await supabase
       .from('org_members')
       .select('org_id, role, org:organisations(name)')
@@ -50,7 +55,8 @@ export async function GET(
 
     return NextResponse.json({
       id: params.userId,
-      email: 'user@example.com', // Placeholder - would need admin API
+      email: targetUser?.email ?? 'unknown',
+      created_at: targetUser?.created_at,
       orgs: (memberships || []).map((m: any) => ({
         id: m.org_id,
         name: m.org?.name || 'Unknown',
@@ -79,11 +85,14 @@ export async function PATCH(
 
     const updates: UpdateUserInput = await request.json()
 
-    // Note: Disabling users would require admin API access to auth.users
-    // For MVP, we can track this in a separate table or use Supabase admin API
-    // For now, we'll just log the action
+    if (updates.disabled !== undefined) {
+      const adminClient = createAdminClient()
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(params.userId, {
+        ban_duration: updates.disabled ? '876000h' : 'none',
+      })
+      if (updateError) throw updateError
+    }
 
-    // Log admin audit event
     await supabase.from('admin_audit_log').insert({
       staff_user_id: staffId,
       action: 'USER_UPDATED',
@@ -95,7 +104,7 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json({ success: true, message: 'User update logged' })
+    return NextResponse.json({ success: true, message: 'User updated' })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

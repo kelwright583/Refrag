@@ -1,7 +1,7 @@
 # Refrag Project Status
 
-**Last Updated:** 5 March 2026
-**Current Focus:** Document Ingestion Engine complete — next priorities noted below
+**Last Updated:** 18 March 2026
+**Current Focus:** Full audit remediation complete — all phases through 17 built, infrastructure hardened
 
 ---
 
@@ -58,114 +58,55 @@
 
 ---
 
-## 🔄 Phase 7: Assessment Report Engine & Document Ingestion — IN PROGRESS (~85%)
+## ✅ Phase 7: Assessment Report Engine & Document Ingestion — COMPLETE
 
-> The original Phase 7 (basic markdown reports) was fully superseded. See `PHASE_7_ASSESSMENT_ENGINE.md` for the complete redesign spec.
+### Schema & Database
+- ✅ 15 new tables, 14 new enums with full RLS
+- ✅ Report pack tables (report_packs, report_pack_items) with RLS
 
-### What has been built
+### Types, Validation & Client Layer
+- ✅ Full TypeScript types, Zod schemas, financial calculator, API functions, React Query hooks
 
-#### Schema & Database
-- ✅ `database/phase7_assessment_schema.sql` — 15 new tables, 14 new enums
-  - `motor_assessments`, `vehicle_details`, `tyre_details`, `pre_existing_damages`, `vehicle_values`, `repair_assessments`, `repair_line_items`, `parts_assessments`, `claim_financials`, `assessment_documents`, `report_evidence_links`
-- ✅ `database/phase7_rls_policies.sql` — Full RLS for all new tables
-- ✅ `database/phase7b_report_pack_schema.sql` — `report_packs`, `report_pack_items` tables
-- ✅ `database/phase7b_report_pack_rls.sql` — RLS for report pack tables
+### API Routes (all complete)
+- ✅ Full CRUD for assessments, vehicle details, tyres, damages, values, repair, parts, financials, evidence links
+- ✅ Assessment settings, repairers, suppliers
+- ✅ Report packs CRUD with auto-population
 
-#### Types, Validation & Client Layer
-- ✅ `web-app/src/lib/types/assessment.ts` — Full TypeScript types for all assessment entities
-- ✅ `web-app/src/lib/validation/assessment.ts` — Zod schemas for all assessment forms
-- ✅ `web-app/src/lib/assessment/calculator.ts` — Financial calculator (max repair, betterment, VAT, write-off settlement)
-- ✅ `web-app/src/lib/api/assessments.ts` — Client-side API functions
-- ✅ `web-app/src/hooks/use-assessments.ts` — React Query hooks for all assessment operations
-- ✅ `web-app/src/lib/types/report-pack.ts` — Report pack types
-- ✅ `web-app/src/lib/validation/report-pack.ts` — Report pack Zod schemas
-- ✅ `web-app/src/lib/api/report-packs.ts` — Report pack client API
-- ✅ `web-app/src/hooks/use-report-packs.ts` — Report pack React Query hooks
+### UI Tabs (9-tab Assessment Editor)
+- ✅ InstructionTab, VehicleDetailsTab, TyresTab, DamagesLabourTab, PartsAssessmentTab, MMCodesValuesTab, PhotosEvidenceTab, OutcomeFinancialsTab, FindingsTab
 
-#### API Routes (all complete)
-| Route | Purpose |
-|---|---|
-| `POST/GET /api/assessments` | Create / list assessments. Auto-copies case risk item vehicle data into `vehicle_details` on creation |
-| `GET/PATCH/DELETE /api/assessments/[id]` | Full assessment + sub-data fetch; PATCH creates version snapshot on "ready" |
-| `/api/assessments/[id]/vehicle` | Upsert vehicle details |
-| `/api/assessments/[id]/tyres` | Bulk upsert tyre details |
-| `/api/assessments/[id]/damages` | Add/delete pre-existing damage |
-| `/api/assessments/[id]/values` | Upsert vehicle values |
-| `/api/assessments/[id]/repair` | Upsert repair assessment |
-| `/api/assessments/[id]/repair/line-items` | Add/update/delete repair line items |
-| `/api/assessments/[id]/parts` | Upsert parts assessment |
-| `/api/assessments/[id]/financials` | Upsert/recalculate financials |
-| `/api/assessments/[id]/evidence-links` | Report photo links |
-| `/api/settings/assessment` | Org assessment settings |
-| `/api/settings/assessment/repairers` | Approved repairers |
-| `/api/settings/assessment/suppliers` | Preferred suppliers |
-| `/api/report-packs` | Create / list report packs (auto-populates items from assessment docs on creation) |
-| `/api/report-packs/[id]` | Get / update / delete report pack |
-| `/api/report-packs/[id]/items` | Add items to report pack |
-| `/api/report-packs/[id]/items/[itemId]` | Patch / delete pack items |
-| `POST /api/ai/ingest-document` | Full document ingestion pipeline (pdf-parse / mammoth / GPT-4o Vision → PII-safe extraction → assessment_documents) |
+### Document Ingestion Engine
+- ✅ pdf-parse + mammoth for local text extraction
+- ✅ Field mapper with 40+ alias mappings and PII regex extraction
+- ✅ GPT-4o classification and structured extraction
+- ✅ DocumentDropZone and ExtractionReviewPanel components
 
-#### UI Tabs (Assessment Editor — 9 tabs)
-- ✅ `InstructionTab.tsx` — Insurer/insured/assessor details. **Now includes DocumentDropZone** for auto-populating from instruction PDFs
-- ✅ `VehicleDetailsTab.tsx` — Make/model/VIN/reg/condition/damage overview. **Auto-populated from case risk item on creation**
-- ✅ `TyresTab.tsx` — 4-tyre condition grid (RF/LF/RR/LR)
-- ✅ `DamagesLabourTab.tsx` — Pre-existing damages CRUD + repair line items with betterment/sublet. Drop zone with click-to-browse
-- ✅ `PartsAssessmentTab.tsx` — Parts supplier, amounts, OCR drop zone with click-to-browse
-- ✅ `MMCodesValuesTab.tsx` — MM Guide / TransUnion values, derived thresholds, OCR drop zone with click-to-browse
-- ✅ `PhotosEvidenceTab.tsx` — Drag-drop + click-to-browse photo uploads, link photos to report sections
-- ✅ `OutcomeFinancialsTab.tsx` — Outcome picker, live financial summary, settlement calculator
-- ✅ `FindingsTab.tsx` — Completeness checklist, mark ready / submit workflow, report preview link
+### OCR Integration (NEW — 18 March 2026)
+- ✅ `/api/ai/ocr-extract` route: PDF text → pdf-parse, images → Google Vision, then GPT-4o field extraction
+- ✅ DamagesLabourTab, PartsAssessmentTab, MMCodesValuesTab wired to real OCR with progress states
+- ✅ Graceful fallback when Google Vision not configured (pdf-parse only for PDFs)
 
-#### Report & Report Pack
-- ✅ `AssessmentReport.tsx` — Full 15-section printable report (instruction, insured, vehicle, damage, tyres, pre-existing, values, repairer, line items, parts, financials, outcome, findings, declaration, footer)
-- ✅ `/app/cases/[id]/assessment/[assessmentId]/report/page.tsx` — Preview page with Print/PDF toolbar
-- ✅ `globals.css` — A4 print styles, page-break control, header repeat
-- ✅ `/app/cases/[id]/report/page.tsx` — **Report Pack page**: list packs, create packs (auto-populates items from assessment docs), toggle items in/out, stubbed Download ZIP / Email to Insurer buttons
+### Communications Templates (NEW — 18 March 2026)
+- ✅ Assessment-specific placeholders: `{{Outcome}}`, `{{ClaimNumber}}`, `{{InsurerName}}`, `{{DateAssessed}}`, etc.
+- ✅ Placeholder resolution utility with full context support
+- ✅ Templates settings page updated with expandable placeholder reference
 
-#### Settings
-- ✅ `/app/settings/assessment/page.tsx` — VAT %, max repair %, parts handling %, labour rates per operation type (panel/mech/electrical/paint/structural/trim/glass), disclaimer text, approved repairers list, preferred suppliers list
-
-#### Document Ingestion Engine (new — complete)
-- ✅ `pdf-parse` + `mammoth` installed for local text extraction (POPIA-safe — no external API)
-- ✅ `web-app/src/lib/types/ingestion.ts` — `ExtractionResult`, `ExtractedField`, `DocumentIngestionInput`, `ConfirmedFields`
-- ✅ `web-app/src/lib/ai/field-mapper.ts` — 40+ alias mappings across insurer formats; local PII regex extraction (names, phones, policy numbers never sent to AI)
-- ✅ `web-app/src/lib/ai/prompts.ts` — `INGEST_DOCUMENT_SYSTEM` + `INGEST_DOCUMENT_USER` prompts added
-- ✅ `web-app/src/app/api/ai/ingest-document/route.ts` — Full pipeline: upload → extract text → PII local extraction → GPT-4o classify/extract → field mapping → assessment_documents persist → AI audit log
-- ✅ `web-app/src/lib/api/ingestion.ts` + `web-app/src/hooks/use-ingestion.ts`
-- ✅ `web-app/src/components/ingestion/DocumentDropZone.tsx` — Reusable drag-drop + click-to-browse, compact mode, progress/done/error states
-- ✅ `web-app/src/components/ingestion/ExtractionReviewPanel.tsx` — Field-by-field review, green/amber/red confidence badges, PII labels, Accept All / Clear All, editable rows
-- ✅ `CreateCaseModal.tsx` — DocumentDropZone wired at top; confirmed fields auto-fill insurer, broker, claim ref, loss date, vehicle details
-- ✅ Supabase Storage bucket `ingested-docs` (private, 50 MB limit, org-scoped RLS) — to be created via SQL migration provided
-
-#### Click-to-browse audit (completed 5 March 2026)
-All drop zones now support both drag-and-drop **and** click-to-browse:
-- ✅ `DocumentDropZone.tsx` — always had it
-- ✅ `evidence/page.tsx` — always had it
-- ✅ `PhotosEvidenceTab.tsx` — added
-- ✅ `DamagesLabourTab.tsx` — added
-- ✅ `PartsAssessmentTab.tsx` — added
-- ✅ `MMCodesValuesTab.tsx` — added
-
-#### Auto-population across "create" flows
-- ✅ New Assessment — pre-fills `insurer_name`, `claim_number`, `date_of_loss`, `insured_name`, `assessment_location` from case data; auto-copies vehicle make/model/year/VIN/reg/engine from `case.risk_items[0].asset_data` into `vehicle_details`
-- ✅ New Invoice — auto-fills reference, client, and line item detail from case data
-- ✅ Report pack title — auto-generated from case data
-
-### What remains in Phase 7
-- ⏳ **Google Vision OCR** — wire up real Google Cloud Vision API to the drop zones in Damages/Labour, Parts, and MM Values tabs (currently stubs showing "OCR complete" after a timeout). See Phase 7 note below on setup.
-- ⏳ **Communications templates** — assessment-specific `{{Outcome}}`, `{{ClaimNumber}}` etc. placeholders to be added to the existing comms system
-- ⏳ **Resend email integration** — see Phase 15 below
+### Report & Report Pack
+- ✅ Full 15-section printable AssessmentReport with org stationery branding
+- ✅ Report pack page with photo PDF generation, invoice inclusion check, ZIP download, email to insurer
 
 ---
 
-## ✅ Phase 8: Export & Assessor Pack Generation — COMPLETE (original)
+## ✅ Phase 8: Export & Assessor Pack Generation — COMPLETE (Rewritten)
 
-> Note: Phase 8 was built against the original markdown report model. It needs to be rewritten to render the new Phase 7 assessment data model. Tracked in the build plan under Phase 8 rewrite.
-
-- ✅ PDF generation with pdfkit
-- ✅ Export tab (`/app/cases/[id]/export`)
-- ✅ PDF stored in Supabase Storage (`exports` bucket)
-- ✅ Download with signed URLs, export history, audit logging
+- ✅ Export page rewritten for Phase 7 assessment data model
+- ✅ Assessment selector (when multiple assessments per case)
+- ✅ Checkbox options: report PDF, photo evidence, original documents
+- ✅ PDF generation via pdfkit rendering all 15 assessment report sections
+- ✅ Org stationery branding applied to PDF (logo, colours)
+- ✅ Photo evidence appended if selected
+- ✅ Stored in Supabase Storage with signed URL downloads
+- ✅ Export history with version tracking and audit logging
 
 ---
 
@@ -173,7 +114,7 @@ All drop zones now support both drag-and-drop **and** click-to-browse:
 
 - ✅ Admin app with staff verification middleware
 - ✅ Organisation management (list, detail, status, plan, members)
-- ✅ User management (list, detail, disable/enable, password reset)
+- ✅ User management with real Supabase Admin API (disable/enable, password reset)
 
 ---
 
@@ -183,38 +124,117 @@ All drop zones now support both drag-and-drop **and** click-to-browse:
 - ✅ Evidence viewer with data access logging
 - ✅ Analytics dashboard (DAU/WAU/MAU, cases, evidence)
 - ✅ Insights dashboard with anonymised aggregates and CSV export
-- ✅ System health, audit log viewer, data access log viewer
+- ✅ System health with real storage stats via admin API
+- ✅ Audit log viewer, data access log viewer
 
 ---
 
 ## ✅ Phase 11: Integration & Polish — COMPLETE
 
-- ✅ Error boundary, error display components, error handling utilities
+- ✅ Error boundaries on both web-app and admin-suite (including ErrorBoundary components + error.tsx + global-error.tsx)
+- ✅ Toast notification system on both apps
 - ✅ Pagination support on cases and evidence APIs
 - ✅ React Query caching configured
 - ✅ Cross-platform type consistency verified
+- ✅ Silent error catches replaced with proper error handling across all pages
 
 ---
 
-## 📋 Upcoming Priorities (in order)
+## ✅ Phase 15: Org Stationery & Branding — COMPLETE
 
-### Priority 1 — Org Stationery & Branding (new — see notes)
-> Assessors and investigators need to brand their outputs — reports and invoices — as their own, with "powered by Refrag" in tiny text only. Full spec in UPCOMING_FEATURES.md.
+- ✅ Schema migration: logo_url, primary_colour, accent_colour, text_colour, footer_disclaimer
+- ✅ `org-assets` storage bucket with org-scoped RLS
+- ✅ Stationery settings page: logo upload, 3 colour pickers with hex inputs, footer disclaimer
+- ✅ Live preview panel updating in real time
+- ✅ AssessmentReport.tsx uses stationery (logo, colours, custom footer + "Powered by Refrag")
+- ✅ Export PDF uses stationery branding
+- ✅ Settings hub updated with Stationery & Branding card
 
-### Priority 2 — Report Pack completion
-> Report pack needs: assessor's invoice attached, AI-tagged photos compiled to PDF, encouragement to complete invoice before generating pack. Full spec in UPCOMING_FEATURES.md.
+---
 
-### Priority 3 — Google Vision OCR setup
-> Walk-through and wiring needed. See UPCOMING_FEATURES.md.
+## ✅ Phase 17: Resend Email / Comms Integration — COMPLETE
 
-### Priority 4 — Onboarding review
-> Onboarding flow needs a rethink — review and redesign.
+- ✅ `/api/comms/send` route: template resolution, Resend send, auto-log to comms_log
+- ✅ 6 professional email templates (instruction received, assessment complete, write-off, RFI, invoice, report pack)
+- ✅ Comms tab wired: template picker, recipient auto-fill, body preview, send + auto-log
+- ✅ Report pack "Email to Insurer" wired
+- ✅ Graceful 503 when RESEND_API_KEY not configured
 
-### Priority 5 — Investigator Tool (next MVP)
-> A fundamentally different workflow from assessing. Spec and design needed. See UPCOMING_FEATURES.md.
+---
 
-### Priority 6 — Resend Email / Comms
-> Build comms with Resend for transactional emails, templates, and case comms log. See UPCOMING_FEATURES.md.
+## ✅ Onboarding Redesign — COMPLETE
+
+- ✅ 5-step setup wizard: org details → logo & branding → financial defaults → approved repairers → complete
+- ✅ Progress saved at each step via existing APIs
+- ✅ Getting Started checklist on dashboard (5 items, progress bar, dismiss, auto-hide when complete)
+- ✅ Org profile API (GET/PATCH)
+- ✅ Onboarding completion API
+
+---
+
+## ✅ Infrastructure & Security Hardening — COMPLETE
+
+### Database
+- ✅ All RLS files made idempotent (DROP POLICY IF EXISTS before CREATE)
+- ✅ Migration 005 policies updated with `is_staff()` access
+- ✅ RLS added to `case_number_sequences`
+- ✅ `intake_documents.created_by` FK fixed (ON DELETE SET NULL)
+- ✅ `run-migrations.js` updated to include 007 + Phase 7/7B + Phase 15
+- ✅ `migrations/README.md` documents full run order
+
+### Security
+- ✅ Inbound email webhook requires `INBOUND_EMAIL_SECRET` (503 if missing)
+- ✅ Google Vision uses service account credentials (not unsupported apiKey)
+- ✅ Resend client validates API key before creating
+- ✅ All `.env.example` files updated with all used env vars
+- ✅ Security headers on both web-app and admin-suite (CSP, X-Frame-Options, etc.)
+
+### Code Quality
+- ✅ `strict: true` enabled in admin-suite tsconfig
+- ✅ `any` types replaced with proper types in admin API routes
+- ✅ Admin user management wired to real Supabase Admin API
+- ✅ System health uses real storage stats
+- ✅ Toast notifications replace all `alert()` calls
+
+### Error Handling
+- ✅ ErrorBoundary + error.tsx + global-error.tsx on both apps
+- ✅ Toast notification system on both apps
+- ✅ All silent `.catch(() => {})` replaced with proper logging and user feedback
+
+### Testing & CI/CD
+- ✅ Vitest configured with jsdom, React Testing Library
+- ✅ 59 initial tests (calculator, placeholder resolution, error handling)
+- ✅ GitHub Actions CI: lint, typecheck, test, build for both apps
+- ✅ Bundle analysis configured (@next/bundle-analyzer)
+
+---
+
+## 📋 Upcoming Priorities (Future)
+
+### Phase 12 — Future Enhancements (Post-MVP)
+- Digital signatures & e-sign
+- Parts negotiation workflow
+- Salvage buyer management
+- Paint system integration (Audatex/SilverDAT)
+- Dark mode (mobile)
+- Advanced camera features (mobile)
+- Billing integration (Stripe)
+
+### Phase 13 — Property Loss Adjusting Module
+- Property assessment schema and input module
+- Room-by-room damage items, contents schedule
+- Underinsurance/average clause calculation
+- Property-specific report template
+
+### Phase 14 — Liability & Specialist Assessments
+- Liability assessment module
+- Heavy commercial vehicles, motorcycles, watercraft, agricultural equipment
+
+### Phase 16 — Investigator Tool
+- Investigation schema (parties, interviews, findings, red flags)
+- Investigation input module (6 tabs)
+- Investigation report builder (narrative-heavy)
+- Investigation mandate checklists
 
 ---
 
@@ -228,14 +248,34 @@ All drop zones now support both drag-and-drop **and** click-to-browse:
 | 4 — Mobile Mandates | ✅ Complete | 100% |
 | 5 — Web Foundation | ✅ Complete | 100% |
 | 6 — Web Evidence & Mandates | ✅ Complete | 100% |
-| 7 — Assessment Engine & Doc Ingestion | 🔄 In Progress | ~85% |
-| 8 — Export (original) | ✅ Complete (needs rewrite for Phase 7 data) | — |
+| 7 — Assessment Engine & Doc Ingestion | ✅ Complete | 100% |
+| 8 — Export (rewritten for Phase 7) | ✅ Complete | 100% |
 | 9 — Admin Foundation | ✅ Complete | 100% |
 | 10 — Admin Analytics | ✅ Complete | 100% |
 | 11 — Integration & Polish | ✅ Complete | 100% |
 | 12 — Future Enhancements | ⏳ Pending | 0% |
 | 13 — Property Loss Adjusting | ⏳ Pending | 0% |
 | 14 — Liability & Specialist | ⏳ Pending | 0% |
-| 15 — Stationery & Branding | 🆕 New | 0% |
-| 16 — Investigator Tool | 🆕 New | 0% |
-| 17 — Resend Comms | 🆕 New | 0% |
+| 15 — Stationery & Branding | ✅ Complete | 100% |
+| 16 — Investigator Tool | ⏳ Pending | 0% |
+| 17 — Resend Comms | ✅ Complete | 100% |
+| Onboarding Redesign | ✅ Complete | 100% |
+| Infrastructure Hardening | ✅ Complete | 100% |
+
+---
+
+## 🔑 External Configuration Required (Your Action)
+
+Before going live, you need to configure these API keys and external services:
+
+| Item | Where to Set | Notes |
+|---|---|---|
+| **Supabase project** | All `.env` files | URL + anon key for all apps |
+| **SUPABASE_SERVICE_ROLE_KEY** | `admin-suite/.env` | For admin user management |
+| **RESEND_API_KEY** | `web-app/.env` | For email sending. Sign up at resend.com |
+| **RESEND_FROM_EMAIL** | `web-app/.env` | Requires DNS domain verification |
+| **OPENAI_API_KEY** | `web-app/.env` | For document ingestion AI extraction |
+| **Google Cloud Vision** | `web-app/.env` | Service account JSON. See `UPCOMING_FEATURES.md` Priority 3 for step-by-step setup |
+| **Google Maps API key** | `web-app/.env` + `mobile-app/.env` | For address autocomplete |
+| **INBOUND_EMAIL_SECRET** | `web-app/.env` | Shared secret for email webhook |
+| **Run database migrations** | Supabase SQL Editor | Run `schema.sql` → `rls_policies.sql` → `node run-migrations.js` |

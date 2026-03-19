@@ -7,22 +7,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { Activity, Database, HardDrive, AlertCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
 
 export default function SystemHealthPage() {
-  const [storageStats, setStorageStats] = useState<any>(null)
+  const { data: healthData, isLoading: healthLoading } = useQuery({
+    queryKey: ['admin-system-health'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/system-health')
+      if (!res.ok) throw new Error('Failed to fetch system health')
+      return res.json()
+    },
+  })
 
-  useEffect(() => {
-    // Fetch storage stats (would need Supabase admin API for actual storage usage)
-    // For MVP, we'll show placeholder data
-    setStorageStats({
-      total_storage: 0,
-      evidence_storage: 0,
-      exports_storage: 0,
-    })
-  }, [])
+  const storageStats = healthData?.storage ?? null
 
-  // Get background jobs status
   const { data: jobs } = useQuery({
     queryKey: ['admin-background-jobs'],
     queryFn: async () => {
@@ -56,7 +53,9 @@ export default function SystemHealthPage() {
             <HardDrive className="w-5 h-5" />
             Storage Usage
           </h2>
-          {storageStats ? (
+          {healthLoading ? (
+            <p className="text-slate text-sm">Loading storage stats...</p>
+          ) : storageStats ? (
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-sm mb-1">
@@ -68,7 +67,9 @@ export default function SystemHealthPage() {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-copper h-2 rounded-full"
-                    style={{ width: '60%' }}
+                    style={{
+                      width: `${Math.min(100, storageStats.total_storage > 0 ? 60 : 0)}%`,
+                    }}
                   ></div>
                 </div>
               </div>
@@ -76,9 +77,20 @@ export default function SystemHealthPage() {
                 <p>Evidence: {formatBytes(storageStats.evidence_storage)}</p>
                 <p>Exports: {formatBytes(storageStats.exports_storage)}</p>
               </div>
+              {storageStats.buckets && Object.keys(storageStats.buckets).length > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <p className="text-xs font-medium text-charcoal mb-1">All Buckets</p>
+                  {Object.entries(storageStats.buckets).map(([name, size]: [string, any]) => (
+                    <div key={name} className="flex justify-between text-xs text-slate">
+                      <span>{name}</span>
+                      <span>{formatBytes(size)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            <p className="text-slate">Storage stats require admin API access</p>
+            <p className="text-slate">Failed to load storage stats</p>
           )}
         </div>
 
@@ -142,9 +154,6 @@ export default function SystemHealthPage() {
   )
 }
 
-/**
- * Format bytes
- */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 Bytes'
   const k = 1024

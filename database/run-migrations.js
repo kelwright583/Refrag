@@ -9,19 +9,30 @@ const path = require('path')
 const { Client } = require('pg')
 
 const MIGRATION_ORDER = [
-  '001_clients_and_org_profile.sql',
-  '001_clients_rls.sql',
-  '002_case_number_sequence.sql',
-  '003_onboarding_inbound_appointments_recordings_invoices.sql',
-  '003_rls.sql',
-  '004_intake_risk_items_valuations_rules_transactions.sql',
-  '004_rls.sql',
-  '005_notifications_calendar_ai_filing.sql',
-  '005_rls.sql',
-  '006_storage_policies.sql',
+  // Core migrations (in database/migrations/)
+  { file: '001_clients_and_org_profile.sql', dir: 'migrations' },
+  { file: '001_clients_rls.sql', dir: 'migrations' },
+  { file: '002_case_number_sequence.sql', dir: 'migrations' },
+  { file: '003_onboarding_inbound_appointments_recordings_invoices.sql', dir: 'migrations' },
+  { file: '003_rls.sql', dir: 'migrations' },
+  { file: '004_intake_risk_items_valuations_rules_transactions.sql', dir: 'migrations' },
+  { file: '004_rls.sql', dir: 'migrations' },
+  { file: '005_notifications_calendar_ai_filing.sql', dir: 'migrations' },
+  { file: '005_rls.sql', dir: 'migrations' },
+  { file: '006_storage_policies.sql', dir: 'migrations' },
+  { file: '007_enhanced_invoicing.sql', dir: 'migrations' },
+  { file: '008_case_number_rls_and_fk_fixes.sql', dir: 'migrations' },
+  // Phase 7: Assessment engine (in database/)
+  { file: 'phase7_assessment_schema.sql', dir: '.' },
+  { file: 'phase7_rls_policies.sql', dir: '.' },
+  // Phase 7B: Report packs (in database/)
+  { file: 'phase7b_report_pack_schema.sql', dir: '.' },
+  { file: 'phase7b_report_pack_rls.sql', dir: '.' },
+  // Phase 15: Stationery & branding (in database/)
+  { file: 'phase15_stationery_schema.sql', dir: '.' },
 ]
 
-const migrationsDir = path.join(__dirname, 'migrations')
+const baseDir = __dirname
 
 async function run() {
   const databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL
@@ -33,20 +44,25 @@ async function run() {
   const client = new Client({ connectionString: databaseUrl })
   try {
     await client.connect()
-    console.log('Connected. Running migrations...')
-    for (const file of MIGRATION_ORDER) {
-      const filePath = path.join(migrationsDir, file)
+    console.log('Connected. Running migrations...\n')
+
+    for (const entry of MIGRATION_ORDER) {
+      const dir = entry.dir === '.' ? baseDir : path.join(baseDir, entry.dir)
+      const filePath = path.join(dir, entry.file)
+
       if (!fs.existsSync(filePath)) {
-        console.warn('Skip (not found):', file)
+        console.warn(`  SKIP (not found): ${entry.file}`)
         continue
       }
+
       const sql = fs.readFileSync(filePath, 'utf8')
       await client.query(sql)
-      console.log('OK:', file)
+      console.log(`  OK: ${entry.file}`)
     }
-    console.log('Migrations complete.')
+
+    console.log('\nAll migrations complete.')
   } catch (err) {
-    console.error('Migration failed:', err.message)
+    console.error('\nMigration failed:', err.message)
     process.exit(1)
   } finally {
     await client.end()

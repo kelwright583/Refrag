@@ -20,6 +20,7 @@ interface Appointment {
 export default function AppointmentsPage() {
   const [list, setList] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     const from = new Date()
@@ -30,7 +31,11 @@ export default function AppointmentsPage() {
     fetch(`/api/appointments?from=${from.toISOString()}&to=${to.toISOString()}`)
       .then((r) => r.json())
       .then((d) => setList(Array.isArray(d) ? d : []))
-      .catch(() => setList([]))
+      .catch((err) => {
+        console.error('Failed to load appointments:', err)
+        setList([])
+        setFetchError('Failed to load appointments. Please try again.')
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -40,6 +45,12 @@ export default function AppointmentsPage() {
         <h1 className="text-3xl font-heading font-bold text-charcoal">Appointments</h1>
         <p className="text-slate mt-1">Scheduled visits. Create from a case.</p>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {fetchError}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-2">

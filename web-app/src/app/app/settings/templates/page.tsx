@@ -13,7 +13,7 @@ import {
   useDeleteCommsTemplate,
 } from '@/hooks/use-comms'
 import { CommsTemplate } from '@/lib/types/comms'
-import { ArrowLeft, Plus, Edit2, Trash2, Save, X } from 'lucide-react'
+import { ArrowLeft, Plus, Edit2, Trash2, Save, X, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function TemplatesSettingsPage() {
   const router = useRouter()
@@ -224,12 +224,7 @@ function TemplateCard({
               {template.body_template_md}
             </pre>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-xs text-slate">
-              <strong>Available placeholders:</strong>{' '}
-              {`{{CaseNumber}}, {{ClientName}}, {{InsurerName}}, {{BrokerName}}, {{ClaimReference}}, {{LossDate}}, {{Location}}`}
-            </p>
-          </div>
+          <PlaceholderReference />
         </div>
       )}
     </div>
@@ -324,12 +319,7 @@ function CreateTemplateModal({
             />
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Available placeholders:</strong>{' '}
-              {`{{CaseNumber}}, {{ClientName}}, {{InsurerName}}, {{BrokerName}}, {{ClaimReference}}, {{LossDate}}, {{Location}}`}
-            </p>
-          </div>
+          <PlaceholderReference />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
@@ -349,6 +339,70 @@ function CreateTemplateModal({
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+const PLACEHOLDER_GROUPS = [
+  {
+    label: 'Case',
+    tokens: [
+      { token: '{{CaseNumber}}', desc: 'Case reference number' },
+      { token: '{{ClientName}}', desc: 'Client / insured name' },
+      { token: '{{ClaimReference}}', desc: 'Claim reference from insurer' },
+      { token: '{{LossDate}}', desc: 'Date of loss' },
+      { token: '{{Location}}', desc: 'Loss location' },
+      { token: '{{BrokerName}}', desc: 'Broker name' },
+    ],
+  },
+  {
+    label: 'Assessment',
+    tokens: [
+      { token: '{{Outcome}}', desc: 'Assessment outcome (Repairable, Write-off, etc.)' },
+      { token: '{{ClaimNumber}}', desc: 'Claim number from assessment' },
+      { token: '{{InsurerName}}', desc: 'Insurer name' },
+      { token: '{{DateAssessed}}', desc: 'Date of assessment' },
+      { token: '{{AssessorName}}', desc: 'Assessor name' },
+      { token: '{{VehicleDetails}}', desc: 'Vehicle make / model / year / reg' },
+      { token: '{{RepairTotal}}', desc: 'Total repair cost (excl. VAT)' },
+      { token: '{{GrandTotal}}', desc: 'Grand total (incl. VAT)' },
+    ],
+  },
+]
+
+function PlaceholderReference() {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs font-medium text-slate hover:text-charcoal transition-colors"
+      >
+        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        Available Placeholders
+      </button>
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          {PLACEHOLDER_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1.5">{group.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.tokens.map(({ token, desc }) => (
+                  <span
+                    key={token}
+                    title={desc}
+                    className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded text-xs font-mono cursor-default"
+                  >
+                    {token}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

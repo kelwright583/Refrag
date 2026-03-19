@@ -15,9 +15,22 @@ import {
   computeWriteOffSettlement,
 } from '@/lib/assessment/calculator'
 
+export interface OrgStationery {
+  logo_url?: string | null
+  primary_colour?: string | null
+  accent_colour?: string | null
+  text_colour?: string | null
+  name?: string
+  legal_name?: string | null
+  registration_number?: string | null
+  vat_number?: string | null
+  footer_disclaimer?: string | null
+}
+
 interface Props {
   assessment: FullMotorAssessment
   settings: AssessmentSettings | null
+  stationery?: OrgStationery | null
 }
 
 // ─── Formatters ─────────────────────────────────────────────────────────────
@@ -41,9 +54,9 @@ function titleCase(s: string): string {
 function ReportSection({ number, title, children }: { number: string; title: string; children: React.ReactNode }) {
   return (
     <section className="mb-8 break-inside-avoid-page">
-      <div className="flex items-baseline gap-3 mb-3 border-b-2 border-[#8B4513] pb-1">
-        <span className="text-xs font-bold text-[#8B4513] uppercase tracking-widest">{number}</span>
-        <h2 className="text-sm font-bold text-[#1A1A2E] uppercase tracking-wide">{title}</h2>
+      <div className="flex items-baseline gap-3 mb-3 border-b-2 pb-1" style={{ borderColor: 'var(--primary)' }}>
+        <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--primary)' }}>{number}</span>
+        <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--text-color)' }}>{title}</h2>
       </div>
       {children}
     </section>
@@ -56,7 +69,7 @@ function InfoGrid({ rows }: { rows: [string, React.ReactNode][] }) {
       {rows.map(([label, value], i) => (
         <div key={i} className="flex gap-2 text-sm">
           <span className="text-[#6B6B7E] min-w-40 shrink-0">{label}:</span>
-          <span className="text-[#1A1A2E] font-medium">{value || '—'}</span>
+          <span className="font-medium" style={{ color: 'var(--text-color)' }}>{value || '—'}</span>
         </div>
       ))}
     </div>
@@ -92,7 +105,7 @@ const OUTCOME_COLOR: Record<string, string> = {
 
 // ─── Main Report ─────────────────────────────────────────────────────────────
 
-export function AssessmentReport({ assessment, settings }: Props) {
+export function AssessmentReport({ assessment, settings, stationery }: Props) {
   const v = assessment.vehicle_details
   const vals = assessment.vehicle_values
   const ra = assessment.repair_assessment
@@ -142,29 +155,50 @@ export function AssessmentReport({ assessment, settings }: Props) {
     return acc
   }, {} as Record<OperationType, RepairLineItem[]>)
 
+  const primaryColour = stationery?.primary_colour || '#8B4513'
+  const accentColour = stationery?.accent_colour || '#1A1A2E'
+  const textColour = stationery?.text_colour || '#1A1A2E'
+  const orgName = stationery?.name || null
+  const orgLegalName = stationery?.legal_name || null
+  const orgRegNumber = stationery?.registration_number || settings?.company_registration || null
+  const orgVatNumber = stationery?.vat_number || settings?.vat_registration || null
+
   return (
     <div
       id="assessment-report"
       className="bg-white max-w-[860px] mx-auto shadow-lg print:shadow-none print:max-w-none"
-      style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif" }}
+      style={{
+        fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+        '--primary': primaryColour,
+        '--accent': accentColour,
+        '--text-color': textColour,
+      } as React.CSSProperties}
     >
       {/* ── COVER / HEADER ─────────────────────────────────────────────────── */}
-      <header className="px-10 pt-10 pb-6 border-b-4 border-[#8B4513]">
+      <header className="px-10 pt-10 pb-6 border-b-4" style={{ borderColor: 'var(--primary)' }}>
         <div className="flex items-start justify-between gap-6">
           {/* Org branding */}
           <div>
             <div className="flex items-center gap-3 mb-1">
-              {/* Logo placeholder — replace with actual logo when settings.logo_storage_path is set */}
-              <div className="w-10 h-10 bg-[#8B4513] rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                {settings?.company_registration ? 'ORG' : 'R'}
-              </div>
+              {stationery?.logo_url ? (
+                <img src={stationery.logo_url} alt={orgName || 'Logo'} className="h-12 w-auto max-w-[120px] object-contain" />
+              ) : (
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: 'var(--primary)' }}>
+                  {orgName ? orgName.charAt(0).toUpperCase() : 'R'}
+                </div>
+              )}
               <div>
-                <p className="text-xs text-[#6B6B7E] font-medium uppercase tracking-wider">Assessors &amp; Loss Adjusters</p>
-                {settings?.company_registration && (
-                  <p className="text-xs text-[#6B6B7E]">Reg: {settings.company_registration}</p>
+                {orgName && (
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-color)' }}>{orgName}</p>
                 )}
-                {settings?.vat_registration && (
-                  <p className="text-xs text-[#6B6B7E]">VAT: {settings.vat_registration}</p>
+                {!orgName && (
+                  <p className="text-xs text-[#6B6B7E] font-medium uppercase tracking-wider">Assessors &amp; Loss Adjusters</p>
+                )}
+                {orgRegNumber && (
+                  <p className="text-xs text-[#6B6B7E]">Reg: {orgRegNumber}</p>
+                )}
+                {orgVatNumber && (
+                  <p className="text-xs text-[#6B6B7E]">VAT: {orgVatNumber}</p>
                 )}
               </div>
             </div>
@@ -172,7 +206,7 @@ export function AssessmentReport({ assessment, settings }: Props) {
 
           {/* Report title + meta */}
           <div className="text-right">
-            <h1 className="text-2xl font-bold text-[#1A1A2E] uppercase tracking-tight leading-tight">
+            <h1 className="text-2xl font-bold uppercase tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
               Motor Vehicle Assessment Report
             </h1>
             {withoutPrejudice && (
@@ -182,7 +216,7 @@ export function AssessmentReport({ assessment, settings }: Props) {
             )}
             <p className="text-xs text-[#6B6B7E] mt-2">Dated: {reportedDate}</p>
             {assessment.sequence_number > 1 && (
-              <p className="text-xs text-[#8B4513] font-medium mt-0.5">
+              <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--primary)' }}>
                 {assessment.assessment_sequence === 'supplementary' ? 'Supplementary' : 'Re-inspection'} — #{assessment.sequence_number}
               </p>
             )}
@@ -286,16 +320,16 @@ export function AssessmentReport({ assessment, settings }: Props) {
           <ReportSection number="7" title="Pre-Existing Damages (Not Part of Current Claim)">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-[#F5F3EF]">
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Location / Panel</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Severity</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Description</th>
+                <tr style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                  <th className="text-left px-3 py-2 font-medium">Location / Panel</th>
+                  <th className="text-left px-3 py-2 font-medium">Severity</th>
+                  <th className="text-left px-3 py-2 font-medium">Description</th>
                 </tr>
               </thead>
               <tbody>
                 {assessment.pre_existing_damages.map((d, i) => (
                   <tr key={d.id} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]'}>
-                    <td className="px-3 py-2 font-medium text-[#1A1A2E]">{d.location}</td>
+                    <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-color)' }}>{d.location}</td>
                     <td className="px-3 py-2 capitalize">{d.severity}</td>
                     <td className="px-3 py-2 text-[#6B6B7E]">{d.description || '—'}</td>
                   </tr>
@@ -310,13 +344,13 @@ export function AssessmentReport({ assessment, settings }: Props) {
           <ReportSection number="8" title="Tyre Condition">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-[#F5F3EF]">
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Position</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Make</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Size</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Tread</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Condition</th>
-                  <th className="text-left px-3 py-2 text-[#6B6B7E] font-medium">Comments</th>
+                <tr style={{ backgroundColor: 'var(--accent)', color: '#fff' }}>
+                  <th className="text-left px-3 py-2 font-medium">Position</th>
+                  <th className="text-left px-3 py-2 font-medium">Make</th>
+                  <th className="text-left px-3 py-2 font-medium">Size</th>
+                  <th className="text-left px-3 py-2 font-medium">Tread</th>
+                  <th className="text-left px-3 py-2 font-medium">Condition</th>
+                  <th className="text-left px-3 py-2 font-medium">Comments</th>
                 </tr>
               </thead>
               <tbody>
@@ -361,11 +395,11 @@ export function AssessmentReport({ assessment, settings }: Props) {
           </div>
           <Divider />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-            <div className="bg-[#1A1A2E] text-white rounded px-3 py-2">
+            <div className="text-white rounded px-3 py-2" style={{ backgroundColor: 'var(--accent)' }}>
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Vehicle Total Value</p>
               <p className="font-bold text-base">{zar(vehicleTotalValue)}</p>
             </div>
-            <div className="bg-[#8B4513] text-white rounded px-3 py-2">
+            <div className="text-white rounded px-3 py-2" style={{ backgroundColor: 'var(--primary)' }}>
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Max Repair Threshold ({maxRepairPct}%)</p>
               <p className="font-bold text-base">{zar(maxRepairValue)}</p>
             </div>
@@ -396,7 +430,7 @@ export function AssessmentReport({ assessment, settings }: Props) {
           <ReportSection number="11" title="Repair Assessment — Line Items">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="bg-[#1A1A2E] text-white">
+                <tr className="text-white" style={{ backgroundColor: 'var(--accent)' }}>
                   <th className="text-left px-2 py-2 font-medium rounded-tl">Description</th>
                   <th className="text-center px-2 py-2 font-medium">Type</th>
                   <th className="text-right px-2 py-2 font-medium">Parts</th>
@@ -439,7 +473,7 @@ export function AssessmentReport({ assessment, settings }: Props) {
                     <td />
                   </tr>
                 )}
-                <tr className="bg-[#1A1A2E] text-white">
+                <tr className="text-white" style={{ backgroundColor: 'var(--accent)' }}>
                   <td colSpan={6} className="px-2 py-2 text-right font-semibold text-sm">Assessed Repair Total (excl. VAT)</td>
                   <td className="px-2 py-2 text-right font-bold text-sm">{zar(repairTotal)}</td>
                   <td />
@@ -549,7 +583,9 @@ export function AssessmentReport({ assessment, settings }: Props) {
 
       {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
       <footer className="px-10 py-5 border-t border-[#D4CFC7] text-[10px] text-[#6B6B7E] leading-relaxed">
-        {settings?.report_disclaimer ? (
+        {stationery?.footer_disclaimer ? (
+          <p>{stationery.footer_disclaimer}</p>
+        ) : settings?.report_disclaimer ? (
           <p>{settings.report_disclaimer}</p>
         ) : (
           <p>
@@ -562,6 +598,9 @@ export function AssessmentReport({ assessment, settings }: Props) {
           <span>Assessment Ref: {assessment.claim_number || assessment.id.slice(0, 8).toUpperCase()}</span>
           <span>Generated: {new Date().toLocaleDateString('en-ZA')}</span>
         </div>
+        <p className="mt-2 text-center" style={{ fontSize: '7pt', color: '#9CA3AF' }}>
+          Powered by Refrag · refrag.app
+        </p>
       </footer>
     </div>
   )
@@ -576,7 +615,8 @@ function FinancialTable({ rows }: { rows: [string, string, boolean][] }) {
         {rows.map(([label, value, isTotal], i) => (
           <tr
             key={i}
-            className={`border-b ${isTotal ? 'bg-[#1A1A2E] text-white' : i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]'}`}
+            className={`border-b ${!isTotal ? (i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]') : ''}`}
+            style={isTotal ? { backgroundColor: 'var(--accent)', color: '#fff' } : undefined}
           >
             <td className={`px-4 py-2.5 ${isTotal ? 'font-bold text-base' : ''}`}>{label}</td>
             <td className={`px-4 py-2.5 text-right ${isTotal ? 'font-bold text-base' : 'font-medium'}`}>{value}</td>

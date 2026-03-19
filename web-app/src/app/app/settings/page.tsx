@@ -5,6 +5,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Palette } from 'lucide-react'
 
 function ProfileIcon() {
   return (
@@ -146,6 +147,20 @@ export default function SettingsPage() {
             <h2 className="font-medium text-slate">Assessment Settings</h2>
             <p className="text-sm text-muted mt-0.5">
               Labour rates, VAT, write-off thresholds, approved repairers &amp; parts suppliers
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/app/settings/stationery"
+          className="flex items-center gap-4 p-5 bg-white border border-[#D4CFC7] rounded-lg hover:border-[#C9C4BC] transition-colors"
+        >
+          <span className="p-2 rounded-lg bg-copper/10 shrink-0">
+            <Palette className="w-6 h-6 text-[#A0522D]" />
+          </span>
+          <div>
+            <h2 className="font-medium text-slate">Stationery &amp; Branding</h2>
+            <p className="text-sm text-muted mt-0.5">
+              Logo, brand colours, and footer disclaimer for reports and invoices
             </p>
           </div>
         </Link>

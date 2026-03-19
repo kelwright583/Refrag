@@ -27,6 +27,7 @@ export default function SpecialisationSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/org/specialisations')
@@ -34,7 +35,10 @@ export default function SpecialisationSettingsPage() {
       .then((data) => {
         setSelected(data.specialisations || [])
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Failed to load specialisations:', err)
+        setFetchError('Failed to load specialisation settings.')
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -78,6 +82,12 @@ export default function SpecialisationSettingsPage() {
           Select what your organisation specialises in. This determines which risk types and fields are available when creating cases.
         </p>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {fetchError}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">

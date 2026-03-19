@@ -16,6 +16,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
   const upsertValues = useUpsertVehicleValues(assessment.id)
   const [saved, setSaved] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [ocrStatus, setOcrStatus] = useState<'idle' | 'uploading' | 'extracting' | 'parsing' | 'done' | 'error'>('idle')
   const [ocrNote, setOcrNote] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,22 +59,56 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
   }
 
   const processFile = async (file: File) => {
-    setOcrNote('Processing TransUnion / MM Guide printout with OCR…')
+    setOcrStatus('uploading')
+    setOcrNote('Uploading TransUnion / MM Guide printout…')
     try {
       const body = new FormData()
       body.append('file', file)
-      const res = await fetch('/api/ai/ocr', { method: 'POST', body })
+      body.append('document_type', 'mm_valuation')
+
+      setOcrStatus('extracting')
+      setOcrNote('Extracting text from document…')
+
+      const res = await fetch('/api/ai/ocr-extract', { method: 'POST', body })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'OCR request failed' }))
         throw new Error(err.error || `OCR failed (${res.status})`)
       }
-      const { text, confidence } = await res.json()
-      if (!text?.trim()) {
-        setOcrNote('OCR completed but no text was detected. Try a clearer image.')
+
+      setOcrStatus('parsing')
+      setOcrNote('Parsing valuation fields…')
+
+      const data = await res.json()
+
+      if (!data.fields) {
+        setOcrStatus('done')
+        setOcrNote(data.note || 'No text could be extracted. Try a clearer image or text-based PDF.')
         return
       }
-      setOcrNote(`OCR complete (${Math.round(confidence * 100)}% confidence). Review and correct the values below.`)
+
+      const f = data.fields
+      setForm((prev) => ({
+        ...prev,
+        new_price_value: typeof f.new_price === 'number' ? f.new_price : prev.new_price_value,
+        retail_value: typeof f.retail_value === 'number' ? f.retail_value : prev.retail_value,
+        trade_value: typeof f.trade_value === 'number' ? f.trade_value : prev.trade_value,
+        market_value: typeof f.market_value === 'number' ? f.market_value : prev.market_value,
+        valuation_date: f.valuation_date || prev.valuation_date,
+      }))
+      setSaved(false)
+
+      const avgConf = data.confidence
+        ? Math.round(Object.values(data.confidence as Record<string, number>).reduce((a, b) => a + b, 0) / Math.max(Object.keys(data.confidence).length, 1) * 100)
+        : 0
+
+      setOcrStatus('done')
+      setOcrNote(
+        `Extraction complete (${avgConf}% avg. confidence). ` +
+        (f.mm_code ? `MM Code: ${f.mm_code}. ` : '') +
+        `Vehicle values populated — review and correct below.`
+      )
     } catch (err: any) {
+      setOcrStatus('error')
       setOcrNote(`OCR failed: ${err.message}`)
     }
   }
@@ -111,10 +146,23 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
             <p className="text-xs text-slate mt-1">PDF or image — OCR extracts retail, trade &amp; market values; stored for Report Pack</p>
           </div>
         </div>
-        {ocrNote && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        {ocrStatus !== 'idle' && ocrStatus !== 'done' && ocrStatus !== 'error' && (
+          <div className="mt-3 flex items-center gap-3 text-sm text-copper bg-copper/5 border border-copper/20 rounded-lg px-4 py-2.5">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-copper border-t-transparent" />
+            {ocrNote}
+          </div>
+        )}
+        {ocrNote && (ocrStatus === 'done' || ocrStatus === 'error') && (
+          <div className={`mt-3 flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
+            ocrStatus === 'error'
+              ? 'text-red-700 bg-red-50 border border-red-200'
+              : 'text-amber-700 bg-amber-50 border border-amber-200'
+          }`}>
             <FileText className="w-4 h-4 flex-shrink-0" />
             {ocrNote}
+            {ocrStatus === 'error' && (
+              <button onClick={() => fileInputRef.current?.click()} className="ml-2 underline font-medium">Retry</button>
+            )}
           </div>
         )}
         {mmValuationDocs.length > 0 && (

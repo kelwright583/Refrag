@@ -1,16 +1,22 @@
-/**
- * Dashboard - assessor-focused overview
- * Today's appointments, case status breakdown, recent cases, quick links
- */
-
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useCases } from '@/hooks/use-cases'
 import { useTodayAppointments } from '@/hooks/use-appointments'
 import { useClients } from '@/hooks/use-clients'
-import { FileText, Users, Calendar, Mail, Receipt, ChevronRight } from 'lucide-react'
+import {
+  FileText,
+  Users,
+  Calendar,
+  Mail,
+  Receipt,
+  ChevronRight,
+  CheckCircle2,
+  Circle,
+  X,
+  Rocket,
+} from 'lucide-react'
 
 const CASE_STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
@@ -23,10 +29,95 @@ const CASE_STATUS_LABELS: Record<string, string> = {
   closed: 'Closed',
 }
 
+const DISMISS_KEY = 'refrag:getting-started-dismissed'
+
+interface SetupStatus {
+  orgNameSet: boolean
+  logoUploaded: boolean
+  labourRatesConfigured: boolean
+  repairerAdded: boolean
+  firstCaseCreated: boolean
+}
+
+function useGettingStarted(caseCount: number) {
+  const [status, setStatus] = useState<SetupStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDismissed(localStorage.getItem(DISMISS_KEY) === '1')
+    }
+  }, [])
+
+  useEffect(() => {
+    async function check() {
+      try {
+        const [profileRes, settingsRes, repairersRes] = await Promise.all([
+          fetch('/api/org/profile'),
+          fetch('/api/settings/assessment'),
+          fetch('/api/settings/assessment/repairers'),
+        ])
+
+        let orgNameSet = false
+        let logoUploaded = false
+        if (profileRes.ok) {
+          const profile = await profileRes.json()
+          orgNameSet = !!profile.name
+          logoUploaded = !!profile.logo_url
+        }
+
+        let labourRatesConfigured = false
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json()
+          if (settings) {
+            const rateKeys = [
+              'labour_rate_panel', 'labour_rate_mechanical', 'labour_rate_electrical',
+              'labour_rate_paint', 'labour_rate_structural', 'labour_rate_trim', 'labour_rate_glass',
+            ]
+            labourRatesConfigured = rateKeys.some((k) => (settings[k] ?? 0) > 0)
+          }
+        }
+
+        let repairerAdded = false
+        if (repairersRes.ok) {
+          const list = await repairersRes.json()
+          repairerAdded = Array.isArray(list) && list.length > 0
+        }
+
+        setStatus({
+          orgNameSet,
+          logoUploaded,
+          labourRatesConfigured,
+          repairerAdded,
+          firstCaseCreated: caseCount > 0,
+        })
+      } catch {
+        // Silently fail; card won't show
+      } finally {
+        setLoading(false)
+      }
+    }
+    check()
+  }, [caseCount])
+
+  const dismiss = useCallback(() => {
+    setDismissed(true)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DISMISS_KEY, '1')
+    }
+  }, [])
+
+  return { status, loading, dismissed, dismiss }
+}
+
 export default function DashboardPage() {
   const { data: cases, isLoading: casesLoading } = useCases()
   const { data: todayAppointments, isLoading: appointmentsLoading } = useTodayAppointments()
   const { data: clients } = useClients()
+
+  const caseCount = (cases || []).length
+  const { status: setupStatus, loading: setupLoading, dismissed, dismiss } = useGettingStarted(caseCount)
 
   const stats = useMemo(() => {
     const list = cases || []
@@ -65,12 +156,91 @@ export default function DashboardPage() {
     { href: '/app/invoices', label: 'Invoices', icon: Receipt, desc: 'Create and manage invoices' },
   ]
 
+  // Compute setup checklist items
+  const checklistItems = setupStatus
+    ? [
+        { done: setupStatus.orgNameSet, label: 'Organisation name set', href: '/onboarding' },
+        { done: setupStatus.logoUploaded, label: 'Logo uploaded', href: '/app/settings/stationery' },
+        { done: setupStatus.labourRatesConfigured, label: 'Labour rates configured', href: '/app/settings/assessment' },
+        { done: setupStatus.repairerAdded, label: 'Approved repairer added', href: '/app/settings/assessment' },
+        { done: setupStatus.firstCaseCreated, label: 'First case created', href: '/app/cases' },
+      ]
+    : []
+
+  const completedCount = checklistItems.filter((i) => i.done).length
+  const totalChecklist = checklistItems.length
+  const allDone = completedCount === totalChecklist
+
+  const showChecklist = !setupLoading && setupStatus && !dismissed && !allDone
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-heading font-bold text-charcoal">Dashboard</h1>
         <p className="text-slate mt-1">Overview and quick access</p>
       </div>
+
+      {/* Getting Started Checklist */}
+      {showChecklist && (
+        <div className="mb-8 relative">
+          <div className="bg-white border-2 border-accent/30 rounded-xl overflow-hidden shadow-sm">
+            {/* Gradient header strip */}
+            <div className="h-1.5 bg-gradient-to-r from-accent via-copper to-accent" />
+
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Rocket className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-heading font-bold text-charcoal">Getting Started</h2>
+                    <p className="text-sm text-muted">Complete these steps to get the most out of Refrag</p>
+                  </div>
+                </div>
+                <button
+                  onClick={dismiss}
+                  className="p-1.5 text-muted hover:text-charcoal hover:bg-[#F5F2EE] rounded-lg transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium text-charcoal">{completedCount} of {totalChecklist} complete</span>
+                  <span className="text-sm text-muted">{Math.round((completedCount / totalChecklist) * 100)}%</span>
+                </div>
+                <div className="h-2 bg-[#F5F2EE] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-accent to-copper rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${(completedCount / totalChecklist) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Checklist items */}
+              <div className="space-y-1">
+                {checklistItems.map((item) => (
+                  <ChecklistRow key={item.label} {...item} />
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div className="mt-5 pt-4 border-t border-[#D4CFC7]">
+                <Link
+                  href="/onboarding"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg text-sm font-medium hover:opacity-95 transition-opacity"
+                >
+                  Complete Setup <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Today's appointments */}
       <div className="mb-8">
@@ -220,5 +390,26 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function ChecklistRow({ done, label, href }: { done: boolean; label: string; href: string }) {
+  if (done) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
+        <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+        <span className="text-sm text-slate line-through">{label}</span>
+      </div>
+    )
+  }
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#F5F2EE] transition-colors group"
+    >
+      <Circle className="w-5 h-5 text-[#D4CFC7] group-hover:text-accent flex-shrink-0 transition-colors" />
+      <span className="text-sm text-charcoal font-medium">{label}</span>
+      <ChevronRight className="w-4 h-4 text-muted ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+    </Link>
   )
 }

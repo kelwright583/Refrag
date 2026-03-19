@@ -80,6 +80,7 @@ export default function NewInvoicePage() {
   const [rates, setRates] = useState<RateOption[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const [selectedCaseId, setSelectedCaseId] = useState(prefillCaseId || '')
   const [selectedClientId, setSelectedClientId] = useState('')
@@ -101,7 +102,10 @@ export default function NewInvoicePage() {
       setCases(Array.isArray(c) ? c : [])
       setClients(Array.isArray(cl) ? cl : [])
       setRates(Array.isArray(r) ? r : [])
-    }).catch(() => {})
+    }).catch((err) => {
+      console.error('Failed to load form data:', err)
+      setFetchError('Failed to load form data. Please refresh the page.')
+    })
     .finally(() => setLoading(false))
   }, [])
 
@@ -264,6 +268,12 @@ export default function NewInvoicePage() {
         <h1 className="text-3xl font-heading font-bold text-charcoal">New Tax Invoice</h1>
         <p className="text-slate mt-1">Create a detailed assessment invoice</p>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {fetchError}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Invoice Header */}

@@ -35,6 +35,7 @@ function formatCurrency(n: number): string {
 export default function InvoicesPage() {
   const [list, setList] = useState<InvoiceRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>('all')
 
   const fetchList = () => {
@@ -42,7 +43,11 @@ export default function InvoicesPage() {
     fetch('/api/invoices')
       .then((r) => r.json())
       .then((d) => setList(Array.isArray(d) ? d : []))
-      .catch(() => setList([]))
+      .catch((err) => {
+        console.error('Failed to load invoices:', err)
+        setList([])
+        setFetchError('Failed to load invoices. Please try again.')
+      })
       .finally(() => setLoading(false))
   }
 
@@ -121,6 +126,12 @@ export default function InvoicesPage() {
           </button>
         ))}
       </div>
+
+      {fetchError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {fetchError}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-2">

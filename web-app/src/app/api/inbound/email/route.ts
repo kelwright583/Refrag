@@ -1,12 +1,12 @@
 /**
  * POST /api/inbound/email — webhook for inbound email (Resend/SendGrid/Postmark).
  * Creates inbound_emails row and optionally a draft case.
- * Secured by shared secret in header or query.
+ * Secured by shared secret in header or query — REQUIRED.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const INBOUND_SECRET = process.env.INBOUND_EMAIL_SECRET || ''
+const INBOUND_SECRET = process.env.INBOUND_EMAIL_SECRET
 
 function parseBody(raw: string): { subject?: string; from?: string; body?: string; to?: string } {
   try {
@@ -22,9 +22,6 @@ function parseBody(raw: string): { subject?: string; from?: string; body?: strin
   }
 }
 
-/**
- * Simple rule-based parse: extract insurer ref, names, address from subject/body.
- */
 function parseClaimData(subject: string, body: string): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   const combined = `${subject}\n${body}`
@@ -43,8 +40,15 @@ function parseClaimData(subject: string, body: string): Record<string, unknown> 
 
 export async function POST(request: NextRequest) {
   try {
+    if (!INBOUND_SECRET) {
+      return NextResponse.json(
+        { error: 'Inbound email webhook is not configured — INBOUND_EMAIL_SECRET is missing' },
+        { status: 503 }
+      )
+    }
+
     const secret = request.headers.get('x-inbound-secret') || request.nextUrl.searchParams.get('secret')
-    if (INBOUND_SECRET && secret !== INBOUND_SECRET) {
+    if (secret !== INBOUND_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -69,7 +73,8 @@ export async function POST(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ id: row.id, status: 'pending' })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Internal server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
