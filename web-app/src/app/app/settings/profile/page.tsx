@@ -273,7 +273,7 @@ export default function ProfileSettingsPage() {
                 type="text"
                 value={profile.country}
                 onChange={(e) => setProfile({ ...profile, country: e.target.value })}
-                placeholder="e.g. South Africa"
+                placeholder="e.g. United States"
                 className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-slate placeholder:text-muted"
               />
             </div>
@@ -310,7 +310,7 @@ export default function ProfileSettingsPage() {
                 value={profile.postal_address}
                 onChange={(e) => setProfile({ ...profile, postal_address: e.target.value })}
                 rows={3}
-                placeholder="Street, suburb, city, postal code"
+                placeholder="Full address"
                 className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-slate resize-none placeholder:text-muted"
               />
             </div>
@@ -320,7 +320,7 @@ export default function ProfileSettingsPage() {
                 value={profile.physical_address}
                 onChange={(e) => setProfile({ ...profile, physical_address: e.target.value })}
                 rows={3}
-                placeholder="Street, suburb, city, postal code"
+                placeholder="Full address"
                 className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-slate resize-none placeholder:text-muted"
               />
             </div>

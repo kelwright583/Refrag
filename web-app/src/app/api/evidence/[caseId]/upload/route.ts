@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { trackServerEvent } from '@/lib/events'
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -63,6 +64,14 @@ export async function POST(
       })
 
     if (uploadError) throw uploadError
+
+    trackServerEvent('evidence_uploaded', {
+      case_id: caseId,
+      file_name: file.name,
+      file_size: file.size,
+      content_type: file.type,
+      media_type: mediaType,
+    }, { orgId })
 
     return NextResponse.json({
       storage_path: storagePath,

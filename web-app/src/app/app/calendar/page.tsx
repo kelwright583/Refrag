@@ -42,10 +42,24 @@ function formatDateISO(d: Date): string {
   return `${y}-${m}-${day}`
 }
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false })
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '-'
+  try {
+    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
+  } catch {
+    return d.toISOString().split('T')[1].slice(0, 5)
+  }
 }
 function formatDateLong(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '-'
+  try {
+    return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return d.toISOString().split('T')[0]
+  }
 }
 function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
@@ -121,10 +135,10 @@ export default function CalendarPage() {
   const headingText = useMemo(() => {
     switch (viewMode) {
       case 'day':
-        return currentDate.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+        return currentDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
       case 'week': {
         const ws = startOfWeek(currentDate)
-        return `${ws.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })} – ${addDays(ws, 6).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}`
+        return `${ws.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${addDays(ws, 6).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
       }
       case 'month':
         return `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`

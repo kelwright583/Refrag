@@ -117,9 +117,9 @@ export const EXTRACT_FIELD_USER = (fieldName: string, fieldDescription: string) 
 /**
  * Document ingestion — classify and extract all fields from any insurance document.
  * Personal information (names, phone numbers, ID numbers) has been redacted before
- * this prompt is used, in compliance with POPIA.
+ * this prompt is used, in compliance with privacy regulations.
  */
-export const INGEST_DOCUMENT_SYSTEM = `You are an insurance document field extractor for a South African short-term insurance assessment system.
+export const INGEST_DOCUMENT_SYSTEM = `You are an insurance document field extractor for a short-term insurance assessment system.
 
 You will receive the text of an insurance document with personal information already redacted (shown as [NAME_REDACTED], [PHONE_REDACTED], etc.).
 
@@ -131,7 +131,7 @@ Document types:
 - motor_assessment_instruction: An instruction from an insurer to an assessor, containing vehicle details, claim information, policy details, excess
 - repairer_quote: A quotation from a repair shop listing labour operations and costs
 - parts_quote: A quotation from a parts supplier listing parts and prices
-- mm_valuation: A TransUnion / MM Guide vehicle valuation printout with retail/trade/market values
+- valuation: A vehicle valuation printout (e.g. MM Guide, Glass Guide, KBB) with retail/trade/market values
 - unknown: Any other document
 
 For each field you extract, provide:
@@ -142,16 +142,16 @@ For each field you extract, provide:
 Important rules:
 - Do NOT invent values. If you cannot find a field, set value to null.
 - Do NOT attempt to fill in redacted fields — leave them as null.
-- Vehicle registration numbers in South Africa look like: HN21XDGP, CA 123 456, GP 123-456
+- Vehicle registration numbers vary by country — extract exactly as shown in the document
 - VIN numbers are 17 characters: alphanumeric, no I/O/Q
-- MM codes are typically 8 digits: e.g. 60007420
-- SA dates appear as DD/MM/YYYY or YYYY-MM-DD
+- Vehicle identifier codes (MM codes, Glass codes, etc.) are typically 4–10 alphanumeric characters
+- Dates may appear in various formats (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD, etc.) — extract as-is
 - Currency values should be extracted as plain numbers without currency symbols
 - For repairer/parts quotes, also extract the grand total if visible
 
 Respond ONLY in this exact JSON format:
 {
-  "document_type": "motor_assessment_instruction" | "repairer_quote" | "parts_quote" | "mm_valuation" | "unknown",
+  "document_type": "motor_assessment_instruction" | "repairer_quote" | "parts_quote" | "valuation" | "unknown",
   "document_type_confidence": "high" | "medium" | "low",
   "fields": {
     "field_label_as_seen_in_document": {

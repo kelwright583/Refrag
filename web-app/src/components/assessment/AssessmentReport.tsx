@@ -14,6 +14,7 @@ import {
   computeIsUneconomical,
   computeWriteOffSettlement,
 } from '@/lib/assessment/calculator'
+import { formatCurrency, formatDate as fmtDate } from '@/lib/utils/formatting'
 
 export interface OrgStationery {
   logo_url?: string | null
@@ -31,19 +32,11 @@ interface Props {
   assessment: FullMotorAssessment
   settings: AssessmentSettings | null
   stationery?: OrgStationery | null
+  locale?: string
+  currencyCode?: string
 }
 
 // ─── Formatters ─────────────────────────────────────────────────────────────
-
-function zar(amount: number | null | undefined): string {
-  if (amount == null) return 'R -'
-  return `R ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-function formatDate(d: string | null): string {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
-}
 
 function titleCase(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -105,7 +98,11 @@ const OUTCOME_COLOR: Record<string, string> = {
 
 // ─── Main Report ─────────────────────────────────────────────────────────────
 
-export function AssessmentReport({ assessment, settings, stationery }: Props) {
+export function AssessmentReport({ assessment, settings, stationery, locale, currencyCode }: Props) {
+  const cur = (amount: number | null | undefined) => formatCurrency(amount, locale, currencyCode)
+  const fmtDt = (d: string | Date | null | undefined) =>
+    fmtDate(d, locale, { year: 'numeric', month: 'long', day: 'numeric' })
+
   const v = assessment.vehicle_details
   const vals = assessment.vehicle_values
   const ra = assessment.repair_assessment
@@ -143,8 +140,8 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
     : null
 
   const reportedDate = assessment.date_assessed
-    ? formatDate(assessment.date_assessed)
-    : formatDate(new Date().toISOString())
+    ? fmtDt(assessment.date_assessed)
+    : fmtDt(new Date().toISOString())
 
   const withoutPrejudice = settings?.without_prejudice_default ?? true
 
@@ -238,7 +235,7 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
             ['Insurer', assessment.insurer_name],
             ['Insurer Email', assessment.insurer_email],
             ['Claim Number', assessment.claim_number],
-            ['Date of Loss', formatDate(assessment.date_of_loss)],
+            ['Date of Loss', fmtDt(assessment.date_of_loss)],
             ['Claims Technician', assessment.claims_technician],
             ['Policy Number', assessment.policy_number],
           ]} />
@@ -258,7 +255,7 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
           <InfoGrid rows={[
             ['Assessor', assessment.assessor_name],
             ['Contact', assessment.assessor_contact],
-            ['Date Assessed', formatDate(assessment.date_assessed)],
+            ['Date Assessed', fmtDt(assessment.date_assessed)],
             ['Assessment Type', titleCase(assessment.assessment_type)],
             ['Assessment Location', assessment.assessment_location],
             ['Vehicle Stripped', assessment.vehicle_stripped ? 'Yes — stripped for inspection' : 'No'],
@@ -275,7 +272,7 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
             ['VIN Number', v?.vin_number],
             ['Engine Number', v?.engine_number],
             ['Mileage', v?.mileage_unknown ? 'Not legible' : (v?.mileage != null ? `${v.mileage.toLocaleString()} km` : null)],
-            ['MM Code', v?.mm_code],
+            ['Identifier', v?.identifier_value ?? v?.mm_code],
             ['Transmission', v?.transmission],
             ['Colour', v?.colour],
           ]} />
@@ -375,17 +372,17 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
         <ReportSection number="9" title="Vehicle Valuation">
           <InfoGrid rows={[
             ['Valuation Source', vals?.source ? titleCase(vals.source) : null],
-            ['Valuation Date', formatDate(vals?.valuation_date ?? null)],
+            ['Valuation Date', fmtDt(vals?.valuation_date ?? null)],
           ]} />
           <Divider />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mt-2">
             {[
-              ['New Price (OTR)', zar(vals?.new_price_value)],
-              ['Retail Value', zar(vals?.retail_value)],
-              ['Trade Value', zar(vals?.trade_value)],
-              ['Market Value', zar(vals?.market_value)],
-              ['Extras Value', zar(vals?.extras_value)],
-              ['Less Old Damages', zar(vals?.less_old_damages)],
+              ['New Price (OTR)', cur(vals?.new_price_value)],
+              ['Retail Value', cur(vals?.retail_value)],
+              ['Trade Value', cur(vals?.trade_value)],
+              ['Market Value', cur(vals?.market_value)],
+              ['Extras Value', cur(vals?.extras_value)],
+              ['Less Old Damages', cur(vals?.less_old_damages)],
             ].map(([label, value]) => (
               <div key={label} className="bg-[#FAFAF8] border border-[#D4CFC7] rounded px-3 py-2">
                 <p className="text-[10px] text-[#6B6B7E] uppercase tracking-wide mb-0.5">{label}</p>
@@ -397,16 +394,16 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
             <div className="text-white rounded px-3 py-2" style={{ backgroundColor: 'var(--accent)' }}>
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Vehicle Total Value</p>
-              <p className="font-bold text-base">{zar(vehicleTotalValue)}</p>
+              <p className="font-bold text-base">{cur(vehicleTotalValue)}</p>
             </div>
             <div className="text-white rounded px-3 py-2" style={{ backgroundColor: 'var(--primary)' }}>
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Max Repair Threshold ({maxRepairPct}%)</p>
-              <p className="font-bold text-base">{zar(maxRepairValue)}</p>
+              <p className="font-bold text-base">{cur(maxRepairValue)}</p>
             </div>
             {isWriteOff && (
               <div className="bg-[#FAFAF8] border border-[#D4CFC7] rounded px-3 py-2">
                 <p className="text-[10px] text-[#6B6B7E] uppercase tracking-wide mb-0.5">Salvage Value</p>
-                <p className="font-semibold text-[#1A1A2E]">{zar(vals?.salvage_value)}</p>
+                <p className="font-semibold text-[#1A1A2E]">{cur(vals?.salvage_value)}</p>
               </div>
             )}
           </div>
@@ -420,7 +417,7 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
               ['Contact Number', ra.repairer_contact],
               ['Email', ra.repairer_email],
               ['Approved Panel Repairer', ra.approved_repairer ? 'Yes' : 'No'],
-              ['Repairer Quoted Amount', ra.quoted_amount != null ? zar(ra.quoted_amount) : null],
+              ['Repairer Quoted Amount', ra.quoted_amount != null ? cur(ra.quoted_amount) : null],
             ]} />
           </ReportSection>
         )}
@@ -455,11 +452,11 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
                         {item.betterment_applicable && <span className="ml-1.5 text-[9px] bg-amber-50 text-amber-700 px-1 rounded">{item.betterment_percentage}% BETTER.</span>}
                       </td>
                       <td className="px-2 py-2 text-center text-[#6B6B7E]">{OP_TYPE_LABEL[item.operation_type]}</td>
-                      <td className="px-2 py-2 text-right">{item.parts_cost > 0 ? zar(item.parts_cost) : '—'}</td>
-                      <td className="px-2 py-2 text-right">{labour > 0 ? zar(labour) : '—'}</td>
-                      <td className="px-2 py-2 text-right">{paint > 0 ? zar(paint) : '—'}</td>
-                      <td className="px-2 py-2 text-right">{other > 0 ? zar(other) : '—'}</td>
-                      <td className="px-2 py-2 text-right font-semibold text-[#1A1A2E]">{zar(total)}</td>
+                      <td className="px-2 py-2 text-right">{item.parts_cost > 0 ? cur(item.parts_cost) : '—'}</td>
+                      <td className="px-2 py-2 text-right">{labour > 0 ? cur(labour) : '—'}</td>
+                      <td className="px-2 py-2 text-right">{paint > 0 ? cur(paint) : '—'}</td>
+                      <td className="px-2 py-2 text-right">{other > 0 ? cur(other) : '—'}</td>
+                      <td className="px-2 py-2 text-right font-semibold text-[#1A1A2E]">{cur(total)}</td>
                       <td className="px-2 py-2 text-center">{item.is_approved ? '✓' : '✗'}</td>
                     </tr>
                   )
@@ -469,13 +466,13 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
                 {bettermentTotal > 0 && (
                   <tr className="border-t border-[#D4CFC7]">
                     <td colSpan={6} className="px-2 py-2 text-right text-[#6B6B7E] text-xs italic">Less: Betterment Deduction</td>
-                    <td className="px-2 py-2 text-right text-orange-700 font-medium">({zar(bettermentTotal)})</td>
+                    <td className="px-2 py-2 text-right text-orange-700 font-medium">({cur(bettermentTotal)})</td>
                     <td />
                   </tr>
                 )}
                 <tr className="text-white" style={{ backgroundColor: 'var(--accent)' }}>
                   <td colSpan={6} className="px-2 py-2 text-right font-semibold text-sm">Assessed Repair Total (excl. VAT)</td>
-                  <td className="px-2 py-2 text-right font-bold text-sm">{zar(repairTotal)}</td>
+                  <td className="px-2 py-2 text-right font-bold text-sm">{cur(repairTotal)}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -484,9 +481,9 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
             {/* Uneconomical warning */}
             {uneconomical.isUneconomical && (
               <div className="mt-3 px-4 py-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800">
-                <strong>Uneconomical to Repair:</strong> The assessed repair total ({zar(repairTotal + partsTotal)}) exceeds
-                the maximum repair threshold of {zar(maxRepairValue)} ({maxRepairPct}% of retail value) by{' '}
-                <strong>{zar(uneconomical.exceedsByAmount)}</strong> ({uneconomical.exceedsByPercent.toFixed(1)}%).
+                <strong>Uneconomical to Repair:</strong> The assessed repair total ({cur(repairTotal + partsTotal)}) exceeds
+                the maximum repair threshold of {cur(maxRepairValue)} ({maxRepairPct}% of retail value) by{' '}
+                <strong>{cur(uneconomical.exceedsByAmount)}</strong> ({uneconomical.exceedsByPercent.toFixed(1)}%).
               </div>
             )}
           </ReportSection>
@@ -507,10 +504,10 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
             )}
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               {[
-                ['Parts (excl. VAT)', zar(pa.parts_amount_excl_vat)],
-                ['Handling Fee (excl. VAT)', zar(pa.parts_handling_fee_excl_vat)],
-                ['Total Parts (excl. VAT)', zar(partsTotal)],
-                ['Total Parts (incl. VAT)', zar(partsTotal * (1 + vatRate / 100))],
+                ['Parts (excl. VAT)', cur(pa.parts_amount_excl_vat)],
+                ['Handling Fee (excl. VAT)', cur(pa.parts_handling_fee_excl_vat)],
+                ['Total Parts (excl. VAT)', cur(partsTotal)],
+                ['Total Parts (incl. VAT)', cur(partsTotal * (1 + vatRate / 100))],
               ].map(([label, value]) => (
                 <div key={label} className="bg-[#FAFAF8] border border-[#D4CFC7] rounded px-3 py-2">
                   <p className="text-[10px] text-[#6B6B7E] uppercase tracking-wide mb-0.5">{label}</p>
@@ -525,21 +522,21 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
         <ReportSection number="13" title="Financial Summary">
           {isWriteOff && writeOffSettlement ? (
             <FinancialTable rows={[
-              ['Vehicle Total Value', zar(vehicleTotalValue), false],
-              ['Less: Salvage Value', `(${zar(lessSalvage)})`, false],
-              ['Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${zar(lessExcess)})` : '—'), false],
-              ['NET SETTLEMENT', zar(writeOffSettlement.netSettlement), true],
+              ['Vehicle Total Value', cur(vehicleTotalValue), false],
+              ['Less: Salvage Value', `(${cur(lessSalvage)})`, false],
+              ['Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${cur(lessExcess)})` : '—'), false],
+              ['NET SETTLEMENT', cur(writeOffSettlement.netSettlement), true],
             ]} />
           ) : (
             <FinancialTable rows={[
-              ['Repair Labour & Operations (excl. VAT)', zar(repairTotal), false],
-              ['Parts incl. Handling (excl. VAT)', zar(partsTotal), false],
-              ...(bettermentTotal > 0 ? [['Less: Betterment Deduction', `(${zar(bettermentTotal)})`, false] as [string, string, boolean]] : []),
-              ['Total (excl. VAT)', zar(totalExclVat), false],
-              [`VAT (${vatRate}%)`, zar(vatAmount), false],
-              ['Total (incl. VAT)', zar(totalInclVat), false],
-              ['Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${zar(lessExcess)})` : '—'), false],
-              ['GRAND TOTAL', zar(grandTotal), true],
+              ['Repair Labour & Operations (excl. VAT)', cur(repairTotal), false],
+              ['Parts incl. Handling (excl. VAT)', cur(partsTotal), false],
+              ...(bettermentTotal > 0 ? [['Less: Betterment Deduction', `(${cur(bettermentTotal)})`, false] as [string, string, boolean]] : []),
+              ['Total (excl. VAT)', cur(totalExclVat), false],
+              [`VAT (${vatRate}%)`, cur(vatAmount), false],
+              ['Total (incl. VAT)', cur(totalInclVat), false],
+              ['Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${cur(lessExcess)})` : '—'), false],
+              ['GRAND TOTAL', cur(grandTotal), true],
             ]} />
           )}
         </ReportSection>
@@ -575,7 +572,7 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
             <div>
               <div className="border-b-2 border-[#1A1A2E] mb-1 h-10" />
               <p className="text-xs text-[#6B6B7E]">Date</p>
-              <p className="text-sm font-medium text-[#1A1A2E] mt-0.5">{formatDate(assessment.date_assessed)}</p>
+              <p className="text-sm font-medium text-[#1A1A2E] mt-0.5">{fmtDt(assessment.date_assessed)}</p>
             </div>
           </div>
         </ReportSection>
@@ -596,7 +593,7 @@ export function AssessmentReport({ assessment, settings, stationery }: Props) {
         )}
         <div className="flex justify-between mt-3 pt-2 border-t border-[#D4CFC7]">
           <span>Assessment Ref: {assessment.claim_number || assessment.id.slice(0, 8).toUpperCase()}</span>
-          <span>Generated: {new Date().toLocaleDateString('en-ZA')}</span>
+          <span>Generated: {fmtDt(new Date())}</span>
         </div>
         <p className="mt-2 text-center" style={{ fontSize: '7pt', color: '#9CA3AF' }}>
           Powered by Refrag · refrag.app

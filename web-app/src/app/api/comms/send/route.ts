@@ -5,6 +5,7 @@ import {
   EMAIL_TEMPLATES,
   resolveTemplatePlaceholders,
 } from '@/lib/comms/email-templates'
+import { formatDate } from '@/lib/utils/formatting'
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +66,13 @@ export async function POST(request: NextRequest) {
         assessmentOutcome = assessment?.outcome || ''
       }
 
+      const { data: orgRecord } = await supabase
+        .from('organisations')
+        .select('locale')
+        .eq('id', orgId)
+        .single()
+      const orgLocale = orgRecord?.locale || undefined
+
       const placeholders: Record<string, string> = {
         CaseNumber: caseData?.case_number || '',
         ClientName: caseData?.client_name || '',
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
         BrokerName: caseData?.broker_name || '',
         ClaimReference: caseData?.claim_reference || '',
         LossDate: caseData?.loss_date
-          ? new Date(caseData.loss_date).toLocaleDateString('en-ZA')
+          ? formatDate(caseData.loss_date, orgLocale)
           : '',
         Location: caseData?.location || '',
         Outcome: assessmentOutcome,

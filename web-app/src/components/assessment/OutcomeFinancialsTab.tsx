@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useUpdateAssessment, useUpsertClaimFinancials } from '@/hooks/use-assessments'
-import { Field, Section, Select, ZarInput, formatZar } from './shared'
-import type { FullMotorAssessment, AssessmentOutcome } from '@/lib/types/assessment'
+import { Field, Section, Select, CurrencyInput } from './shared'
+import { formatCurrency } from '@/lib/utils/formatting'
+import type { FullMotorAssessment, AssessmentOutcome, AssessmentSettings } from '@/lib/types/assessment'
 
 interface Props {
   assessment: FullMotorAssessment
+  settings?: AssessmentSettings | null
   onNavigate: (tab: string) => void
 }
 
@@ -20,7 +22,8 @@ const OUTCOMES: { value: AssessmentOutcome; label: string; description: string }
   { value: 'further_investigation', label: 'Further Investigation Required', description: 'Additional checks needed before recommendation' },
 ]
 
-export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
+export function OutcomeFinancialsTab({ assessment, settings, onNavigate }: Props) {
+  const vatRate = (settings?.vat_rate ?? 15) / 100
   const updateAssessment = useUpdateAssessment(assessment.id)
   const upsertFinancials = useUpsertClaimFinancials(assessment.id)
 
@@ -76,7 +79,7 @@ export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
     + (assessment.parts_assessment?.parts_handling_fee_excl_vat ?? 0)
 
   const combinedExclVat = repairTotal + partsTotal
-  const vatAmount = combinedExclVat * 0.15
+  const vatAmount = combinedExclVat * vatRate
   const inclVat = combinedExclVat + vatAmount
   const excess = !form.excess_tba && form.less_excess ? form.less_excess : 0
   const salvage = form.less_salvage
@@ -138,23 +141,23 @@ export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
             <tbody>
               <tr className="border-b border-[#D4CFC7]">
                 <td className="px-4 py-2.5 text-slate">Repair Labour &amp; Ops (excl. VAT)</td>
-                <td className="px-4 py-2.5 text-right font-medium text-charcoal">{formatZar(repairTotal)}</td>
+                <td className="px-4 py-2.5 text-right font-medium text-charcoal">{formatCurrency(repairTotal)}</td>
               </tr>
               <tr className="border-b border-[#D4CFC7]">
                 <td className="px-4 py-2.5 text-slate">Parts (incl. handling, excl. VAT)</td>
-                <td className="px-4 py-2.5 text-right font-medium text-charcoal">{formatZar(partsTotal)}</td>
+                <td className="px-4 py-2.5 text-right font-medium text-charcoal">{formatCurrency(partsTotal)}</td>
               </tr>
               <tr className="border-b border-[#D4CFC7] bg-white">
                 <td className="px-4 py-2.5 font-medium text-charcoal">Total (excl. VAT)</td>
-                <td className="px-4 py-2.5 text-right font-semibold text-charcoal">{formatZar(combinedExclVat)}</td>
+                <td className="px-4 py-2.5 text-right font-semibold text-charcoal">{formatCurrency(combinedExclVat)}</td>
               </tr>
               <tr className="border-b border-[#D4CFC7]">
-                <td className="px-4 py-2.5 text-slate">VAT (15%)</td>
-                <td className="px-4 py-2.5 text-right font-medium text-charcoal">{formatZar(vatAmount)}</td>
+                <td className="px-4 py-2.5 text-slate">VAT ({(vatRate * 100).toFixed(0)}%)</td>
+                <td className="px-4 py-2.5 text-right font-medium text-charcoal">{formatCurrency(vatAmount)}</td>
               </tr>
               <tr className="border-b border-[#D4CFC7] bg-white">
                 <td className="px-4 py-2.5 font-medium text-charcoal">Total (incl. VAT)</td>
-                <td className="px-4 py-2.5 text-right font-semibold text-charcoal">{formatZar(inclVat)}</td>
+                <td className="px-4 py-2.5 text-right font-semibold text-charcoal">{formatCurrency(inclVat)}</td>
               </tr>
               <tr className="border-b border-[#D4CFC7]">
                 <td className="px-4 py-2.5 text-slate">
@@ -177,7 +180,7 @@ export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
                   ) : (
                     <div className="flex justify-end">
                       <div className="w-36">
-                        <ZarInput value={form.less_excess ?? 0} onChange={(v) => set('less_excess', v)} />
+                        <CurrencyInput value={form.less_excess ?? 0} onChange={(v) => set('less_excess', v)} />
                       </div>
                     </div>
                   )}
@@ -189,7 +192,7 @@ export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex justify-end">
                       <div className="w-36">
-                        <ZarInput value={form.less_salvage} onChange={(v) => set('less_salvage', v)} />
+                        <CurrencyInput value={form.less_salvage} onChange={(v) => set('less_salvage', v)} />
                       </div>
                     </div>
                   </td>
@@ -197,7 +200,7 @@ export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
               )}
               <tr className="bg-copper/5">
                 <td className="px-4 py-3 font-bold text-charcoal text-base">Net Settlement</td>
-                <td className="px-4 py-3 text-right font-bold text-copper text-xl">{formatZar(netSettlement)}</td>
+                <td className="px-4 py-3 text-right font-bold text-copper text-xl">{formatCurrency(netSettlement)}</td>
               </tr>
             </tbody>
           </table>
@@ -208,12 +211,12 @@ export function OutcomeFinancialsTab({ assessment, onNavigate }: Props) {
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="border border-[#D4CFC7] rounded-lg p-4">
               <p className="text-xs text-slate mb-1">Vehicle Total Value</p>
-              <p className="text-lg font-bold text-charcoal">{formatZar(vehicleTotalValue)}</p>
+              <p className="text-lg font-bold text-charcoal">{formatCurrency(vehicleTotalValue)}</p>
             </div>
             <div className="border border-[#D4CFC7] rounded-lg p-4">
               <p className="text-xs text-slate mb-1">Repair Total vs Threshold</p>
               <p className={`text-lg font-bold ${maxRepair && repairTotal > maxRepair ? 'text-red-600' : 'text-emerald-600'}`}>
-                {formatZar(repairTotal)} vs {formatZar(maxRepair)}
+                {formatCurrency(repairTotal)} vs {formatCurrency(maxRepair)}
               </p>
             </div>
           </div>

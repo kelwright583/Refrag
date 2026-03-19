@@ -39,10 +39,11 @@ import {
   Receipt,
 } from 'lucide-react'
 import type { ReportPackWithItems, ReportPackItem } from '@/lib/types/report-pack'
+import { formatDate } from '@/lib/utils/formatting'
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
   assessment_report: 'Assessment Report',
-  mm_codes: 'MM Codes / TransUnion Printout',
+  mm_codes: 'Identifier Codes / Valuation Lookup',
   parts_quote: 'Parts Quotation',
   labour_quote: 'Repairer / Labour Quote',
   photos: 'Photos & Evidence',
@@ -173,7 +174,7 @@ export default function CaseReportPackPage() {
             <option value="">— Select —</option>
             {packs.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.title || `Pack ${new Date(p.created_at).toLocaleDateString('en-ZA')}`} ({p.status})
+                {p.title || `Pack ${formatDate(p.created_at)}`} ({p.status})
               </option>
             ))}
           </select>
@@ -438,7 +439,7 @@ function EmailInsurerModal({
     BrokerName: caseData?.broker_name || '',
     ClaimReference: caseData?.claim_reference || '',
     LossDate: caseData?.loss_date
-      ? new Date(caseData.loss_date).toLocaleDateString('en-ZA')
+      ? formatDate(caseData.loss_date)
       : '',
     Location: caseData?.location || '',
   }

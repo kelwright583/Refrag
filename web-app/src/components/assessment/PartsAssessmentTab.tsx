@@ -3,15 +3,18 @@
 import { useState, useRef } from 'react'
 import { Upload } from 'lucide-react'
 import { useUpsertPartsAssessment } from '@/hooks/use-assessments'
-import { Field, Section, Input, ZarInput, SaveBar, formatZar } from './shared'
-import type { FullMotorAssessment } from '@/lib/types/assessment'
+import { Field, Section, Input, CurrencyInput, SaveBar } from './shared'
+import { formatCurrency } from '@/lib/utils/formatting'
+import type { FullMotorAssessment, AssessmentSettings } from '@/lib/types/assessment'
 
 interface Props {
   assessment: FullMotorAssessment
+  settings?: AssessmentSettings | null
   onNavigate: (tab: string) => void
 }
 
-export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
+export function PartsAssessmentTab({ assessment, settings, onNavigate }: Props) {
+  const vatRate = (settings?.vat_rate ?? 15) / 100
   const upsertParts = useUpsertPartsAssessment(assessment.id)
   const [saved, setSaved] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -41,7 +44,7 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
   }
 
   const partsWithHandling = form.parts_amount_excl_vat + form.parts_handling_fee_excl_vat
-  const partsVat = partsWithHandling * 0.15
+  const partsVat = partsWithHandling * vatRate
   const partsInclVat = partsWithHandling + partsVat
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -180,10 +183,10 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
       <Section title="Parts Amounts">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           <Field label="Parts Amount (excl. VAT)">
-            <ZarInput value={form.parts_amount_excl_vat} onChange={(v) => set('parts_amount_excl_vat', v)} />
+            <CurrencyInput value={form.parts_amount_excl_vat} onChange={(v) => set('parts_amount_excl_vat', v)} />
           </Field>
           <Field label="Parts Handling Fee (excl. VAT)">
-            <ZarInput value={form.parts_handling_fee_excl_vat} onChange={(v) => set('parts_handling_fee_excl_vat', v)} />
+            <CurrencyInput value={form.parts_handling_fee_excl_vat} onChange={(v) => set('parts_handling_fee_excl_vat', v)} />
           </Field>
         </div>
 
@@ -191,15 +194,15 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-[#FAFAF8] border border-[#D4CFC7] rounded-lg p-4">
             <p className="text-xs text-slate mb-1">Parts + Handling (excl. VAT)</p>
-            <p className="text-lg font-bold text-charcoal">{formatZar(partsWithHandling)}</p>
+            <p className="text-lg font-bold text-charcoal">{formatCurrency(partsWithHandling)}</p>
           </div>
           <div className="bg-[#FAFAF8] border border-[#D4CFC7] rounded-lg p-4">
-            <p className="text-xs text-slate mb-1">VAT (15%)</p>
-            <p className="text-lg font-bold text-charcoal">{formatZar(partsVat)}</p>
+            <p className="text-xs text-slate mb-1">VAT ({(vatRate * 100).toFixed(0)}%)</p>
+            <p className="text-lg font-bold text-charcoal">{formatCurrency(partsVat)}</p>
           </div>
           <div className="bg-copper/10 border border-copper/20 rounded-lg p-4 col-span-2">
             <p className="text-xs text-copper mb-1">Total Parts (incl. VAT)</p>
-            <p className="text-xl font-bold text-copper">{formatZar(partsInclVat)}</p>
+            <p className="text-xl font-bold text-copper">{formatCurrency(partsInclVat)}</p>
           </div>
         </div>
 
@@ -221,7 +224,7 @@ export function PartsAssessmentTab({ assessment, onNavigate }: Props) {
         isSaving={upsertParts.isPending}
         saved={saved}
         onNext={() => onNavigate('values')}
-        nextLabel="MM Codes / Values"
+        nextLabel="Valuation / Values"
       />
     </div>
   )

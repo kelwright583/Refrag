@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { trackServerEvent } from '@/lib/events'
 
 async function getUserOrgId(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -61,7 +62,15 @@ export async function POST(request: NextRequest) {
     }
     if (!clientId) return NextResponse.json({ error: 'Client required' }, { status: 400 })
 
-    const vatRate = vat_pct != null ? Number(vat_pct) : 15
+    const { data: orgRecord } = await supabase
+      .from('organisations')
+      .select('currency_code, default_vat_rate')
+      .eq('id', orgId)
+      .single()
+
+    const orgCurrency = orgRecord?.currency_code || 'USD'
+    const orgVatRate = orgRecord?.default_vat_rate ?? 15
+    const vatRate = vat_pct != null ? Number(vat_pct) : orgVatRate
     const discPct = overall_discount_pct != null ? Number(overall_discount_pct) : 0
 
     let totalExcl = 0
@@ -100,7 +109,7 @@ export async function POST(request: NextRequest) {
         client_id: clientId,
         invoice_number: invoiceNumber,
         amount: grandTotal,
-        currency: 'ZAR',
+        currency: orgCurrency,
         status: 'draft',
         reference: reference || null,
         date: date || new Date().toISOString().split('T')[0],
@@ -154,6 +163,15 @@ export async function POST(request: NextRequest) {
       .select('*, case:cases(id, case_number, client_name, claim_reference, vehicle_registration, vehicle_manufacturer, vehicle_model, assessment_type), client:clients(id, name, vat_number, postal_address, physical_address)')
       .eq('id', invoice.id)
       .single()
+
+    trackServerEvent('invoice_created', {
+      invoice_id: invoice.id,
+      invoice_number: invoiceNumber,
+      case_id: case_id || null,
+      grand_total: grandTotal,
+      currency: orgCurrency,
+      line_item_count: items.length,
+    }, { orgId, userId })
 
     return NextResponse.json(full || invoice)
   } catch (e: any) {

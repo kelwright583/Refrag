@@ -9,6 +9,7 @@ import { useCase, useCaseEvidence, useEvidenceSignedUrl, useCaseRiskItems } from
 import { ArrowLeft, FileText, Image, Video, File, Eye, Shield, Car, Building2, Package, X } from 'lucide-react'
 import { useState } from 'react'
 import { RISK_TYPE_LABELS, COVER_TYPE_LABELS, RiskType, CoverType } from '@/lib/types/risk-item'
+import { formatCurrency, formatDateTime, formatDate } from '@/lib/utils/formatting'
 
 export default function CaseDetailPage() {
   const params = useParams()
@@ -93,7 +94,7 @@ export default function CaseDetailPage() {
           {caseData.loss_date && (
             <div>
               <label className="block text-sm font-medium text-charcoal mb-1">Loss Date</label>
-              <p className="text-charcoal">{new Date(caseData.loss_date).toLocaleDateString()}</p>
+              <p className="text-charcoal">{formatDate(caseData.loss_date)}</p>
             </div>
           )}
           {caseData.location && (
@@ -170,7 +171,7 @@ export default function CaseDetailPage() {
             {caseData.repair_estimate_amount !== null && caseData.repair_estimate_amount !== undefined && (
               <div>
                 <label className="block text-sm font-medium text-charcoal mb-1">Repair Estimate</label>
-                <p className="text-charcoal">R {Number(caseData.repair_estimate_amount).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</p>
+                <p className="text-charcoal">{formatCurrency(Number(caseData.repair_estimate_amount))}</p>
               </div>
             )}
           </div>

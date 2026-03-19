@@ -1,6 +1,6 @@
 /**
  * AI: Classify evidence image — identifies what the photo shows
- * Uses OpenAI Vision API with POPIA ring-fencing
+ * Uses OpenAI Vision API with data-protection ring-fencing
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       result = { category: 'OTHER', label: 'Unable to classify', confidence: 'low', notes: content }
     }
 
-    // Log to ai_processing_log (POPIA audit trail)
+    // Log to ai_processing_log (data-protection audit trail)
     await supabase.from('ai_processing_log').insert({
       org_id: orgId,
       case_id: case_id || null,

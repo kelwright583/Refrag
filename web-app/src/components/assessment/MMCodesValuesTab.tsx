@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react'
 import { Upload, FileText } from 'lucide-react'
 import { useUpsertVehicleValues } from '@/hooks/use-assessments'
-import { Field, Section, ZarInput, Select, SaveBar, formatZar } from './shared'
+import { Field, Section, CurrencyInput, Select, SaveBar } from './shared'
+import { formatCurrency } from '@/lib/utils/formatting'
 import type { FullMotorAssessment } from '@/lib/types/assessment'
 import { computeMaxRepairValue, computeVehicleTotalValue } from '@/lib/assessment/calculator'
 
@@ -21,7 +22,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const v = assessment.vehicle_values
-  const mmValuationDocs = assessment.assessment_documents?.filter((d) => d.document_type === 'mm_valuation') ?? []
+  const mmValuationDocs = assessment.assessment_documents?.filter((d) => d.document_type === 'mm_valuation' || d.document_type === 'valuation') ?? []
 
   const [form, setForm] = useState({
     source: v?.source ?? 'mm_guide',
@@ -60,7 +61,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
 
   const processFile = async (file: File) => {
     setOcrStatus('uploading')
-    setOcrNote('Uploading TransUnion / MM Guide printout…')
+    setOcrNote('Uploading valuation printout…')
     try {
       const body = new FormData()
       body.append('file', file)
@@ -104,7 +105,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
       setOcrStatus('done')
       setOcrNote(
         `Extraction complete (${avgConf}% avg. confidence). ` +
-        (f.mm_code ? `MM Code: ${f.mm_code}. ` : '') +
+        (f.mm_code ? `Identifier: ${f.mm_code}. ` : '') +
         `Vehicle values populated — review and correct below.`
       )
     } catch (err: any) {
@@ -129,7 +130,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
   return (
     <div className="space-y-5">
       {/* OCR Drop Zone */}
-      <Section title="Import MM Codes / TransUnion Printout (OCR)">
+      <Section title="Import Valuation Printout (OCR)">
         <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt,image/*" className="hidden" onChange={handleFileInput} />
         <div
           onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
@@ -142,7 +143,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
         >
           <Upload className={`w-8 h-8 ${dragging ? 'text-copper' : 'text-slate/40'}`} />
           <div className="text-center">
-            <p className="text-sm font-medium text-charcoal">Drop MM Guide / TransUnion printout here or click to browse</p>
+            <p className="text-sm font-medium text-charcoal">Drop valuation printout here or click to browse</p>
             <p className="text-xs text-slate mt-1">PDF or image — OCR extracts retail, trade &amp; market values; stored for Report Pack</p>
           </div>
         </div>
@@ -172,7 +173,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
                 key={doc.id}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-medium"
               >
-                MM valuation attached {doc.ocr_status === 'complete' ? '(OCR complete)' : doc.ocr_status}
+                Valuation attached {doc.ocr_status === 'complete' ? '(OCR complete)' : doc.ocr_status}
               </span>
             ))}
           </div>
@@ -187,6 +188,8 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
               <option value="mm_guide">MM Guide (TransUnion)</option>
               <option value="evalue8">eValue8</option>
               <option value="transunion">TransUnion (Other)</option>
+              <option value="glass_guide">Glass Guide</option>
+              <option value="kbb">KBB / Kelley Blue Book</option>
               <option value="other">Other</option>
             </Select>
           </Field>
@@ -201,25 +204,25 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="New Price (OTR)">
-            <ZarInput value={form.new_price_value} onChange={(v) => set('new_price_value', v)} />
+            <CurrencyInput value={form.new_price_value} onChange={(v) => set('new_price_value', v)} />
           </Field>
           <Field label="Retail Value" required>
-            <ZarInput value={form.retail_value} onChange={(v) => set('retail_value', v)} />
+            <CurrencyInput value={form.retail_value} onChange={(v) => set('retail_value', v)} />
           </Field>
           <Field label="Trade Value">
-            <ZarInput value={form.trade_value} onChange={(v) => set('trade_value', v)} />
+            <CurrencyInput value={form.trade_value} onChange={(v) => set('trade_value', v)} />
           </Field>
           <Field label="Market Value">
-            <ZarInput value={form.market_value} onChange={(v) => set('market_value', v)} />
+            <CurrencyInput value={form.market_value} onChange={(v) => set('market_value', v)} />
           </Field>
           <Field label="Extras Value">
-            <ZarInput value={form.extras_value} onChange={(v) => set('extras_value', v)} />
+            <CurrencyInput value={form.extras_value} onChange={(v) => set('extras_value', v)} />
           </Field>
           <Field label="Less Old Damages">
-            <ZarInput value={form.less_old_damages} onChange={(v) => set('less_old_damages', v)} />
+            <CurrencyInput value={form.less_old_damages} onChange={(v) => set('less_old_damages', v)} />
           </Field>
           <Field label="Salvage Value">
-            <ZarInput value={form.salvage_value} onChange={(v) => set('salvage_value', v)} />
+            <CurrencyInput value={form.salvage_value} onChange={(v) => set('salvage_value', v)} />
           </Field>
         </div>
       </Section>
@@ -228,7 +231,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#FAFAF8] border border-[#D4CFC7] rounded-xl p-5">
           <p className="text-xs text-slate uppercase tracking-wide mb-1">Vehicle Total Value</p>
-          <p className="text-2xl font-bold text-charcoal">{formatZar(vehicleTotalValue)}</p>
+          <p className="text-2xl font-bold text-charcoal">{formatCurrency(vehicleTotalValue)}</p>
           <p className="text-xs text-slate mt-1">Retail + Extras − Old Damages</p>
         </div>
         <div className="bg-[#FAFAF8] border border-[#D4CFC7] rounded-xl p-5">
@@ -245,10 +248,10 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
             </label>
           </div>
           {form.max_repair_value_override ? (
-            <ZarInput value={form.max_repair_value_manual} onChange={(v) => set('max_repair_value_manual', v)} />
+            <CurrencyInput value={form.max_repair_value_manual} onChange={(v) => set('max_repair_value_manual', v)} />
           ) : (
             <>
-              <p className="text-2xl font-bold text-charcoal">{formatZar(maxRepairValue)}</p>
+              <p className="text-2xl font-bold text-charcoal">{formatCurrency(maxRepairValue)}</p>
               <div className="flex items-center gap-2 mt-1">
                 <input
                   type="number"
@@ -265,7 +268,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
         </div>
         <div className="bg-[#FAFAF8] border border-[#D4CFC7] rounded-xl p-5">
           <p className="text-xs text-slate uppercase tracking-wide mb-1">Write-off If Repair Exceeds</p>
-          <p className="text-2xl font-bold text-copper">{formatZar(maxRepairValue)}</p>
+          <p className="text-2xl font-bold text-copper">{formatCurrency(maxRepairValue)}</p>
           <p className="text-xs text-slate mt-1">Based on current threshold</p>
         </div>
       </div>

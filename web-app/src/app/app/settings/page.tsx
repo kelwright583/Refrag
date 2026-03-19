@@ -164,6 +164,23 @@ export default function SettingsPage() {
             </p>
           </div>
         </Link>
+        <Link
+          href="/app/settings/billing"
+          className="flex items-center gap-4 p-5 bg-white border border-[#D4CFC7] rounded-lg hover:border-[#C9C4BC] transition-colors"
+        >
+          <span className="p-2 rounded-lg bg-copper/10 shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A0522D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+          </span>
+          <div>
+            <h2 className="font-medium text-slate">Billing &amp; Credits</h2>
+            <p className="text-sm text-muted mt-0.5">
+              Manage credits, subscriptions, and payment methods
+            </p>
+          </div>
+        </Link>
       </div>
     </div>
   )

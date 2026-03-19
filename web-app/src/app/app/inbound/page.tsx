@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
+import { formatDateTime } from '@/lib/utils/formatting'
 
 interface InboundRow {
   id: string
@@ -114,7 +115,7 @@ export default function InboundPage() {
                 <p className="font-medium text-slate truncate">{row.raw_subject || '(No subject)'}</p>
                 <p className="text-sm text-muted truncate">{row.raw_from || ''}</p>
                 <p className="text-xs text-muted mt-0.5">
-                  {new Date(row.created_at).toLocaleString('en-ZA')} · {row.status}
+                  {formatDateTime(row.created_at)} · {row.status}
                   {row.case_id && (
                     <>
                       {' · '}

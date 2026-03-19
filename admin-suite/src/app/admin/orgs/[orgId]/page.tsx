@@ -13,6 +13,7 @@ import {
   useOrgActivity,
 } from '@/hooks/use-orgs'
 import { OrgStatus, BillingStatus, SPECIALISATION_LABELS, OrgSpecialisation } from '@/lib/types/admin'
+import { formatDateTime } from '@/lib/utils/formatting'
 import {
   ArrowLeft,
   Save,
@@ -273,10 +274,10 @@ export default function OrganisationDetailPage() {
 
               <div className="pt-4 border-t border-gray-200">
                 <p className="text-sm text-slate">
-                  <strong>Created:</strong> {new Date(org.created_at).toLocaleString('en-ZA')}
+                  <strong>Created:</strong> {formatDateTime(org.created_at)}
                 </p>
                 <p className="text-sm text-slate">
-                  <strong>Updated:</strong> {new Date(org.updated_at).toLocaleString('en-ZA')}
+                  <strong>Updated:</strong> {formatDateTime(org.updated_at)}
                 </p>
               </div>
             </div>
@@ -305,7 +306,7 @@ export default function OrganisationDetailPage() {
                         )}
                       </div>
                       <span className="text-xs text-slate">
-                        {new Date(item.created_at).toLocaleString('en-ZA')}
+                        {formatDateTime(item.created_at)}
                       </span>
                     </div>
                   </div>

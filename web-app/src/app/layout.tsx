@@ -6,6 +6,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
+import { CommsProvider } from '@/components/comms/CommsProvider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const anekBangla = Anek_Bangla({
@@ -36,8 +37,10 @@ export default function RootLayout({
           <ReactQueryProvider>
             <ToastProvider>
               <GoogleMapsProvider>
-                {children}
-                <PWAInstallPrompt />
+                <CommsProvider>
+                  {children}
+                  <PWAInstallPrompt />
+                </CommsProvider>
               </GoogleMapsProvider>
             </ToastProvider>
           </ReactQueryProvider>

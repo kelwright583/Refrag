@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { checkAndDeductPackCredit } from '@/lib/billing/credit-gate'
 import PDFDocument from 'pdfkit'
+import { formatDateTime } from '@/lib/utils/formatting'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -18,6 +20,33 @@ export async function POST(_req: NextRequest, { params }: Params) {
       .single()
 
     if (packError || !pack) return serverError('Report pack not found', 404)
+
+    // Billing gate — verify credits before generating photo PDF
+    if (pack.payment_status !== 'paid') {
+      const creditResult = await checkAndDeductPackCredit(orgId)
+      if (creditResult.status === 'no_credits') {
+        return serverError('No credits remaining. Please purchase more.', 402)
+      }
+      if (creditResult.status === 'subscription_limit') {
+        return serverError('Monthly pack limit reached. Credits required for overage.', 402)
+      }
+      if (creditResult.status === 'not_active') {
+        return serverError('Billing account not active.', 402)
+      }
+
+      await supabase
+        .from('report_packs')
+        .update({ payment_status: 'paid', pack_credits_used: 1 })
+        .eq('id', packId)
+        .eq('org_id', orgId)
+    }
+
+    const { data: orgRecord } = await supabase
+      .from('organisations')
+      .select('locale')
+      .eq('id', orgId)
+      .single()
+    const orgLocale = orgRecord?.locale || undefined
 
     const { data: links, error: linksError } = await supabase
       .from('report_evidence_links')
@@ -101,7 +130,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
               .fontSize(9)
               .fillColor('#888888')
               .text(
-                `Captured: ${new Date(timestamp).toLocaleString('en-ZA')}`,
+                `Captured: ${formatDateTime(timestamp, orgLocale)}`,
                 40,
                 captionY,
                 { width: maxWidth }

@@ -1,4 +1,8 @@
+import { formatCurrency } from '@/lib/utils/formatting'
+
 export interface PlaceholderContext {
+  locale?: string
+  currencyCode?: string
   case?: {
     case_number?: string
     client_name?: string
@@ -53,11 +57,11 @@ const PLACEHOLDER_MAP: Record<string, (ctx: PlaceholderContext) => string | unde
   },
 
   RepairTotal:     (ctx) => ctx.financials?.total_excl_vat != null
-    ? `R ${ctx.financials.total_excl_vat.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ? formatCurrency(ctx.financials.total_excl_vat, ctx.locale, ctx.currencyCode)
     : undefined,
 
   GrandTotal:      (ctx) => ctx.financials?.grand_total != null
-    ? `R ${ctx.financials.grand_total.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ? formatCurrency(ctx.financials.grand_total, ctx.locale, ctx.currencyCode)
     : undefined,
 }
 

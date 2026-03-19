@@ -10,6 +10,7 @@ import { useUsers } from '@/hooks/use-users'
 import { UserWithOrgs } from '@/lib/types/admin'
 import { Search, User, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { formatDate } from '@/lib/utils/formatting'
 
 export default function UsersPage() {
   const router = useRouter()
@@ -99,7 +100,7 @@ function UserCard({ user }: { user: UserWithOrgs }) {
           )}
         </div>
         <div className="text-right text-sm text-slate">
-          <p>Created: {new Date(user.created_at).toLocaleDateString('en-ZA')}</p>
+          <p>Created: {formatDate(user.created_at)}</p>
           <p className="mt-1">{user.orgs?.length || 0} organisation(s)</p>
         </div>
       </div>

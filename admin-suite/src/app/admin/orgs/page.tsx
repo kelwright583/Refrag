@@ -10,6 +10,7 @@ import { useOrganisations } from '@/hooks/use-orgs'
 import { OrganisationWithStats } from '@/lib/types/admin'
 import { Search, Building2, Users, FileText } from 'lucide-react'
 import Link from 'next/link'
+import { formatDate } from '@/lib/utils/formatting'
 
 const STATUS_OPTIONS = ['active', 'trial', 'suspended', 'closed'] as const
 
@@ -133,7 +134,7 @@ function OrgCard({ org }: { org: OrganisationWithStats }) {
           </div>
         </div>
         <div className="text-right text-sm text-slate">
-          <p>Created: {new Date(org.created_at).toLocaleDateString('en-ZA')}</p>
+          <p>Created: {formatDate(org.created_at)}</p>
         </div>
       </div>
     </div>

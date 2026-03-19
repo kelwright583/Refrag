@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import PDFDocument from 'pdfkit'
+import { formatCurrency as fmtCurrency, formatDate as fmtDate } from '@/lib/utils/formatting'
 
 async function getUserOrgId(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -12,16 +13,6 @@ async function getUserOrgId(supabase: Awaited<ReturnType<typeof createClient>>) 
   const { data: orgMember, error } = await supabase.from('org_members').select('org_id').eq('user_id', user.id).limit(1).single()
   if (error || !orgMember) throw new Error('No organisation')
   return orgMember.org_id
-}
-
-function formatDate(d: string | null): string {
-  if (!d) return ''
-  const date = new Date(d)
-  return date.toLocaleDateString('en-ZA', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function formatCurrency(n: number): string {
-  return `R${Number(n).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export async function POST(
@@ -50,7 +41,7 @@ export async function POST(
 
     const { data: org } = await supabase
       .from('organisations')
-      .select('name, legal_name, registration_number, vat_number, postal_address, physical_address, phone, email, logo_storage_path, banking_details')
+      .select('name, legal_name, registration_number, vat_number, postal_address, physical_address, phone, email, logo_storage_path, banking_details, locale, currency_code')
       .eq('id', orgId)
       .single()
 
@@ -73,6 +64,11 @@ export async function POST(
     const banking = (org?.banking_details && typeof org.banking_details === 'object')
       ? org.banking_details as Record<string, string>
       : {}
+
+    const locale = (org as any)?.locale || undefined
+    const currencyCode = (org as any)?.currency_code || undefined
+    const formatCurrency = (n: number) => fmtCurrency(n, locale, currencyCode)
+    const formatDate = (d: string | null) => d ? fmtDate(d, locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''
 
     const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 40 })
@@ -366,7 +362,7 @@ export async function POST(
 
       // Footer
       doc.fontSize(7).font('Helvetica').fillColor('#999')
-        .text(`Generated ${new Date().toLocaleDateString('en-ZA')}`, leftCol, doc.page.height - 40, {
+        .text(`Generated ${fmtDate(new Date(), locale)}`, leftCol, doc.page.height - 40, {
           width: pageWidth, align: 'center',
         })
 

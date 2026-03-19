@@ -1,23 +1,21 @@
 /**
- * Upload queue store using Zustand
- * Manages offline-first evidence upload queue
+ * Upload queue store using Zustand + SQLite
+ * Manages offline-first evidence upload queue backed by expo-sqlite.
  */
 
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UploadQueueItem } from '@/lib/types/evidence';
-
-const QUEUE_STORAGE_KEY = 'upload_queue';
+import { uploadQueue } from '@/lib/db/upload-queue.db';
+import type { QueueItem, EnqueueInput } from '@/lib/types/evidence';
 
 interface UploadQueueState {
-  items: UploadQueueItem[];
+  items: QueueItem[];
   loading: boolean;
   loadQueue: () => Promise<void>;
-  addToQueue: (item: Omit<UploadQueueItem, 'id' | 'status' | 'retry_count' | 'created_at'>) => Promise<void>;
-  updateQueueItem: (id: string, updates: Partial<UploadQueueItem>) => Promise<void>;
+  addToQueue: (item: EnqueueInput) => Promise<void>;
+  updateQueueItem: (id: string, updates: Partial<Pick<QueueItem, 'status' | 'retry_count' | 'last_error'>>) => Promise<void>;
   removeFromQueue: (id: string) => Promise<void>;
-  getPendingItems: () => UploadQueueItem[];
-  getFailedItems: () => UploadQueueItem[];
+  getPendingItems: () => QueueItem[];
+  getFailedItems: () => QueueItem[];
 }
 
 export const useUploadQueueStore = create<UploadQueueState>((set, get) => ({
@@ -27,13 +25,10 @@ export const useUploadQueueStore = create<UploadQueueState>((set, get) => ({
   loadQueue: async () => {
     try {
       set({ loading: true });
-      const stored = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
-      if (stored) {
-        const items = JSON.parse(stored) as UploadQueueItem[];
-        set({ items, loading: false });
-      } else {
-        set({ loading: false });
-      }
+      await uploadQueue.init();
+      await uploadQueue.recoverStuckUploads();
+      const items = await uploadQueue.getAll();
+      set({ items, loading: false });
     } catch (error) {
       console.error('Error loading upload queue:', error);
       set({ loading: false });
@@ -41,43 +36,39 @@ export const useUploadQueueStore = create<UploadQueueState>((set, get) => ({
   },
 
   addToQueue: async (itemData) => {
-    const newItem: UploadQueueItem = {
-      ...itemData,
-      id: `queue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      status: 'pending',
-      retry_count: 0,
-      created_at: new Date().toISOString(),
-    };
-
-    const updatedItems = [...get().items, newItem];
-    set({ items: updatedItems });
-    
     try {
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(updatedItems));
+      await uploadQueue.init();
+      await uploadQueue.enqueue(itemData);
+      const items = await uploadQueue.getAll();
+      set({ items });
     } catch (error) {
-      console.error('Error saving to queue:', error);
+      console.error('Error adding to queue:', error);
     }
   },
 
-  updateQueueItem: async (id: string, updates: Partial<UploadQueueItem>) => {
-    const updatedItems = get().items.map((item) =>
-      item.id === id ? { ...item, ...updates } : item
-    );
-    set({ items: updatedItems });
-    
+  updateQueueItem: async (id, updates) => {
     try {
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(updatedItems));
+      await uploadQueue.init();
+      if (updates.status === 'uploading') {
+        await uploadQueue.markUploading(id);
+      } else if (updates.status === 'complete') {
+        await uploadQueue.markComplete(id);
+      } else if (updates.status === 'failed') {
+        await uploadQueue.markFailed(id, updates.last_error || 'Unknown error');
+      }
+      const items = await uploadQueue.getAll();
+      set({ items });
     } catch (error) {
       console.error('Error updating queue item:', error);
     }
   },
 
-  removeFromQueue: async (id: string) => {
-    const updatedItems = get().items.filter((item) => item.id !== id);
-    set({ items: updatedItems });
-    
+  removeFromQueue: async (id) => {
     try {
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(updatedItems));
+      await uploadQueue.init();
+      await uploadQueue.remove(id);
+      const items = await uploadQueue.getAll();
+      set({ items });
     } catch (error) {
       console.error('Error removing from queue:', error);
     }

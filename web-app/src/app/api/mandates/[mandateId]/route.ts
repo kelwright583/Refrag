@@ -1,108 +1,101 @@
-/**
- * Mandate API route handler (single mandate)
- */
-
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthContext, serverError } from '@/lib/api/server-utils'
 
-async function getUserOrgId(supabase: any): Promise<string> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-
-  const { data: orgMember, error } = await supabase
-    .from('org_members')
-    .select('org_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
-
-  if (error || !orgMember) {
-    throw new Error('No organization found for user')
-  }
-
-  return orgMember.org_id
-}
-
-/**
- * GET /api/mandates/[mandateId] - Get mandate by ID
- */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { mandateId: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ mandateId: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const orgId = await getUserOrgId(supabase)
+    const { mandateId } = await params
+    const { supabase, orgId, error } = await getAuthContext()
+    if (error) return error
 
-    const { data, error } = await supabase
+    const { data: mandate, error: dbErr } = await supabase
       .from('mandates')
-      .select('*')
-      .eq('id', params.mandateId)
+      .select(`
+        *,
+        clients!mandates_client_id_fkey ( name )
+      `)
+      .eq('id', mandateId)
       .eq('org_id', orgId)
       .single()
 
-    if (error) throw error
+    if (dbErr) throw dbErr
+    if (!mandate) return serverError('Mandate not found', 404)
 
-    return NextResponse.json(data)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const { data: requirements, error: reqErr } = await supabase
+      .from('mandate_requirements')
+      .select('*')
+      .eq('mandate_id', mandateId)
+      .eq('org_id', orgId)
+      .order('order_index', { ascending: true })
+
+    if (reqErr) throw reqErr
+
+    return NextResponse.json({
+      ...mandate,
+      client_name: mandate.clients?.name || null,
+      clients: undefined,
+      requirements: requirements || [],
+    })
+  } catch (err: any) {
+    return serverError(err.message)
   }
 }
 
-/**
- * PATCH /api/mandates/[mandateId] - Update mandate
- */
-export async function PATCH(
+export async function PUT(
   request: NextRequest,
-  { params }: { params: { mandateId: string } }
+  { params }: { params: Promise<{ mandateId: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const orgId = await getUserOrgId(supabase)
-    const updates = await request.json()
+    const { mandateId } = await params
+    const { supabase, orgId, error } = await getAuthContext()
+    if (error) return error
 
-    const { data, error } = await supabase
+    const body = await request.json()
+    const updateData: Record<string, unknown> = {}
+
+    if (body.name !== undefined) updateData.name = body.name
+    if (body.description !== undefined) updateData.description = body.description || null
+    if (body.client_id !== undefined) updateData.client_id = body.client_id || null
+    if (body.vertical !== undefined) updateData.vertical = body.vertical
+    if (body.is_default !== undefined) updateData.is_default = body.is_default
+    if (body.is_active !== undefined) updateData.is_active = body.is_active
+
+    const { data, error: dbErr } = await supabase
       .from('mandates')
-      .update(updates)
-      .eq('id', params.mandateId)
+      .update(updateData)
+      .eq('id', mandateId)
       .eq('org_id', orgId)
       .select()
       .single()
 
-    if (error) throw error
-
+    if (dbErr) throw dbErr
+    if (!data) return serverError('Mandate not found', 404)
     return NextResponse.json(data)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (err: any) {
+    return serverError(err.message)
   }
 }
 
-/**
- * DELETE /api/mandates/[mandateId] - Delete mandate
- */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { mandateId: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ mandateId: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const orgId = await getUserOrgId(supabase)
+    const { mandateId } = await params
+    const { supabase, orgId, error } = await getAuthContext()
+    if (error) return error
 
-    const { error } = await supabase
+    const { error: dbErr } = await supabase
       .from('mandates')
       .delete()
-      .eq('id', params.mandateId)
+      .eq('id', mandateId)
       .eq('org_id', orgId)
 
-    if (error) throw error
-
+    if (dbErr) throw dbErr
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (err: any) {
+    return serverError(err.message)
   }
 }

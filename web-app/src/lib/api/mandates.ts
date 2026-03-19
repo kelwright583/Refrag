@@ -1,117 +1,113 @@
-/**
- * Mandate API functions (client-side)
- */
-
 import {
   Mandate,
   MandateRequirement,
-  CaseMandateWithDetails,
-  RequirementCheckWithDetails,
   CreateMandateInput,
-  CreateMandateRequirementInput,
-  AssignMandateInput,
-  UpdateRequirementCheckInput,
+  UpdateMandateInput,
+  CreateRequirementInput,
+  UpdateRequirementInput,
 } from '@/lib/types/mandate'
 
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Request failed (${res.status})`)
+  }
+  return res.json()
+}
+
 export async function getMandates(): Promise<Mandate[]> {
-  const response = await fetch('/api/mandates', {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch mandates')
-  }
-
-  return response.json()
+  const res = await fetch('/api/mandates')
+  return handleResponse<Mandate[]>(res)
 }
 
-export async function getMandate(mandateId: string): Promise<Mandate> {
-  const response = await fetch(`/api/mandates/${mandateId}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch mandate')
-  }
-
-  return response.json()
+export async function getMandate(id: string): Promise<Mandate & { requirements: MandateRequirement[] }> {
+  const res = await fetch(`/api/mandates/${id}`)
+  return handleResponse(res)
 }
 
-export async function getMandateRequirements(
-  mandateId: string
-): Promise<MandateRequirement[]> {
-  const response = await fetch(`/api/mandates/${mandateId}/requirements`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch requirements')
-  }
-
-  return response.json()
-}
-
-export async function getCaseMandates(caseId: string): Promise<CaseMandateWithDetails[]> {
-  const response = await fetch(`/api/cases/${caseId}/mandates`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch case mandates')
-  }
-
-  return response.json()
-}
-
-export async function getRequirementChecks(
-  caseId: string
-): Promise<RequirementCheckWithDetails[]> {
-  const response = await fetch(`/api/cases/${caseId}/requirement-checks`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch requirement checks')
-  }
-
-  return response.json()
-}
-
-export async function assignMandateToCase(input: AssignMandateInput): Promise<void> {
-  const response = await fetch(`/api/cases/${input.case_id}/mandates`, {
+export async function createMandate(data: CreateMandateInput): Promise<Mandate> {
+  const res = await fetch('/api/mandates', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mandate_id: input.mandate_id }),
+    body: JSON.stringify(data),
   })
+  return handleResponse<Mandate>(res)
+}
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to assign mandate')
+export async function updateMandate(id: string, data: UpdateMandateInput): Promise<Mandate> {
+  const res = await fetch(`/api/mandates/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return handleResponse<Mandate>(res)
+}
+
+export async function deleteMandate(id: string): Promise<void> {
+  const res = await fetch(`/api/mandates/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Failed to delete mandate')
   }
 }
 
-export async function updateRequirementCheck(
-  caseId: string,
-  input: UpdateRequirementCheckInput
-): Promise<void> {
-  const response = await fetch(`/api/cases/${caseId}/requirement-checks`, {
-    method: 'PATCH',
+export async function cloneMandate(id: string, targetClientId?: string | null): Promise<Mandate> {
+  const res = await fetch(`/api/mandates/${id}/clone`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ target_client_id: targetClientId }),
   })
+  return handleResponse<Mandate>(res)
+}
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update requirement check')
+export async function getRequirements(mandateId: string): Promise<MandateRequirement[]> {
+  const res = await fetch(`/api/mandates/${mandateId}/requirements`)
+  return handleResponse<MandateRequirement[]>(res)
+}
+
+export async function createRequirement(
+  mandateId: string,
+  data: CreateRequirementInput
+): Promise<MandateRequirement> {
+  const res = await fetch(`/api/mandates/${mandateId}/requirements`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return handleResponse<MandateRequirement>(res)
+}
+
+export async function bulkUpdateRequirements(
+  mandateId: string,
+  requirements: { id: string; order_index: number; category?: string }[]
+): Promise<MandateRequirement[]> {
+  const res = await fetch(`/api/mandates/${mandateId}/requirements`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requirements }),
+  })
+  return handleResponse<MandateRequirement[]>(res)
+}
+
+export async function updateRequirement(
+  mandateId: string,
+  requirementId: string,
+  data: UpdateRequirementInput
+): Promise<MandateRequirement> {
+  const res = await fetch(`/api/mandates/${mandateId}/requirements/${requirementId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return handleResponse<MandateRequirement>(res)
+}
+
+export async function deleteRequirement(mandateId: string, requirementId: string): Promise<void> {
+  const res = await fetch(`/api/mandates/${mandateId}/requirements/${requirementId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'Failed to delete requirement')
   }
 }

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Case, CreateCaseInput } from '@/lib/types/case'
+import { trackServerEvent } from '@/lib/events'
 
 /**
  * Get user's organization ID
@@ -124,6 +125,12 @@ export async function POST(request: NextRequest) {
       action: 'CASE_CREATED',
       details: { case_number: data.case_number },
     })
+
+    trackServerEvent('case_created', {
+      case_id: data.id,
+      case_number: data.case_number,
+      status: data.status,
+    }, { orgId, userId: user.id })
 
     return NextResponse.json(data)
   } catch (error: any) {

@@ -75,14 +75,34 @@ describe('resolvePlaceholders', () => {
     expect(resolvePlaceholders('{{VehicleDetails}}', ctx)).toBe('BMW X5')
   })
 
-  it('formats financial values as South African Rand currency', () => {
+  it('formats financial values as currency', () => {
     const repairResult = resolvePlaceholders('Repair: {{RepairTotal}}', fullContext)
-    expect(repairResult).toContain('R')
     expect(repairResult).toContain('45')
 
     const grandResult = resolvePlaceholders('Grand: {{GrandTotal}}', fullContext)
-    expect(grandResult).toContain('R')
     expect(grandResult).toContain('51')
+  })
+
+  it('formats currency using provided locale and currencyCode', () => {
+    const zarCtx: PlaceholderContext = {
+      locale: 'en-ZA',
+      currencyCode: 'ZAR',
+      financials: { grand_total: 51750 },
+    }
+    const result = resolvePlaceholders('Total: {{GrandTotal}}', zarCtx)
+    expect(result).toContain('51')
+    expect(result).not.toBe('Total: N/A')
+  })
+
+  it('formats currency with GBP locale', () => {
+    const gbpCtx: PlaceholderContext = {
+      locale: 'en-GB',
+      currencyCode: 'GBP',
+      financials: { total_excl_vat: 10000 },
+    }
+    const result = resolvePlaceholders('{{RepairTotal}}', gbpCtx)
+    expect(result).toContain('10')
+    expect(result).not.toBe('N/A')
   })
 
   it('replaces missing values with N/A', () => {
@@ -111,5 +131,25 @@ describe('resolvePlaceholders', () => {
     const template = '{{CaseNumber}} - {{InsuredName}} - {{VehicleDetails}}'
     const result = resolvePlaceholders(template, {})
     expect(result).toBe('N/A - N/A - N/A')
+  })
+
+  it('resolves all known placeholder tokens from PLACEHOLDER_MAP', () => {
+    const tokens = [
+      'CaseNumber', 'ClientName', 'ClaimReference', 'InsurerName', 'BrokerName',
+      'LossDate', 'Location', 'Outcome', 'ClaimNumber', 'DateAssessed',
+      'AssessorName', 'InsuredName', 'PolicyNumber', 'VehicleDetails',
+      'RepairTotal', 'GrandTotal',
+    ]
+    for (const token of tokens) {
+      const result = resolvePlaceholders(`{{${token}}}`, fullContext)
+      expect(result).not.toBe('N/A')
+    }
+  })
+
+  it('works with completely empty context returning N/A for all', () => {
+    const emptyCtx: PlaceholderContext = {}
+    const template = '{{CaseNumber}} {{Outcome}} {{RepairTotal}} {{GrandTotal}}'
+    const result = resolvePlaceholders(template, emptyCtx)
+    expect(result).toBe('N/A N/A N/A N/A')
   })
 })

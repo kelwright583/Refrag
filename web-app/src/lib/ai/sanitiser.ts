@@ -1,21 +1,22 @@
 /**
- * PII Sanitiser — strips personally identifiable information before sending to AI
- * POPIA compliance: no names, ID numbers, phone numbers, emails, or addresses
+ * PII Sanitiser — strips personally identifiable information before sending to AI.
+ * Privacy compliance: no names, ID numbers, phone numbers, emails, or addresses
  * should be sent to external AI services.
  */
 
-/** Regex patterns for common PII */
+/** Regex patterns for common PII (international formats) */
 const PII_PATTERNS: { pattern: RegExp; replacement: string }[] = [
-  // SA ID numbers (13 digits)
-  { pattern: /\b\d{13}\b/g, replacement: '[ID_REDACTED]' },
+  // National ID numbers — 9–13 digit sequences (covers most jurisdictions)
+  { pattern: /\b\d{9,13}\b/g, replacement: '[ID_REDACTED]' },
   // Email addresses
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, replacement: '[EMAIL_REDACTED]' },
-  // SA phone numbers (10-11 digits, various formats)
-  { pattern: /\b(?:\+27|0)\s*\d{2}\s*\d{3}\s*\d{4}\b/g, replacement: '[PHONE_REDACTED]' },
-  // Generic phone (7-15 digits with optional spaces/dashes)
+  // International phone numbers (with country code prefix +XX or +XXX)
+  { pattern: /\b\+\d{1,3}[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{2,4}[\s\-]?\d{3,4}\b/g, replacement: '[PHONE_REDACTED]' },
+  // Local phone numbers (leading 0 or parenthesised area code)
+  { pattern: /\b(?:0|\(\d{1,4}\))\s*\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4}\b/g, replacement: '[PHONE_REDACTED]' },
+  // Generic digit sequence that looks like phone/account (7-15 digits with optional spaces/dashes)
   { pattern: /\b\d[\d\s\-]{6,14}\d\b/g, replacement: '[PHONE_REDACTED]' },
-  // SA postal codes (4 digits at end of address context)
-  // Passport numbers (typically alphanumeric 6-9 chars — keep generic)
+  // Passport numbers (alphanumeric 6-9 chars — kept generic)
   // Bank account numbers (7-16 digits — overlaps with phone, handled above)
 ]
 

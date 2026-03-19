@@ -60,7 +60,13 @@ export async function PATCH(
     }
 
     if (body.line_items !== undefined) {
-      const vatRate = Number(body.vat_pct ?? 15)
+      const { data: orgRecord } = await supabase
+        .from('organisations')
+        .select('default_vat_rate')
+        .eq('id', orgId)
+        .single()
+
+      const vatRate = Number(body.vat_pct ?? orgRecord?.default_vat_rate ?? 15)
       const discPct = Number(body.overall_discount_pct ?? 0)
       const items = Array.isArray(body.line_items) ? body.line_items : []
 

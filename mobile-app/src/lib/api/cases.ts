@@ -30,25 +30,15 @@ export async function getCase(caseId: string): Promise<Case | null> {
 }
 
 export async function createCase(input: CreateCaseInput & { org_id: string; created_by: string }): Promise<Case> {
-  // Fetch org slug for case number generation
-  const { data: org, error: orgError } = await supabase
-    .from('organisations')
-    .select('slug')
-    .eq('id', input.org_id)
-    .single();
-
-  if (orgError) throw orgError;
-
-  // Generate case number (format: ORGSLUG-YYYY-0001)
-  const year = new Date().getFullYear();
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  const case_number = `${org.slug.toUpperCase()}-${year}-${random}`;
+  const { data: caseNumResult, error: caseNumError } = await supabase
+    .rpc('generate_case_number', { p_org_id: input.org_id });
+  if (caseNumError) throw caseNumError;
 
   const { data, error } = await supabase
     .from('cases')
     .insert({
       ...input,
-      case_number,
+      case_number: caseNumResult,
       status: input.status || 'draft',
       priority: input.priority || 'normal',
     })

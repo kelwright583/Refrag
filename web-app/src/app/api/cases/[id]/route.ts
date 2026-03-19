@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UpdateCaseInput, CaseStatus, CasePriority } from '@/lib/types/case'
+import { trackServerEvent } from '@/lib/events'
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -93,6 +94,13 @@ export async function PATCH(
       action: 'CASE_UPDATED',
       details: updates,
     })
+
+    if (updates.status) {
+      trackServerEvent('case_status_changed', {
+        case_id: params.id,
+        new_status: updates.status,
+      }, { orgId, userId: user.id, vertical: data.vertical })
+    }
 
     return NextResponse.json(data)
   } catch (error: any) {

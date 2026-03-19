@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useSearchCases } from '@/hooks/use-cases'
 import { Search, FileText, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import { formatDate } from '@/lib/utils/formatting'
 
 export default function CasesPage() {
   const router = useRouter()
@@ -79,7 +80,7 @@ export default function CasesPage() {
                   )}
                 </div>
                 <div className="text-right text-sm text-slate">
-                  <p>{new Date(caseItem.created_at).toLocaleDateString('en-ZA')}</p>
+                  <p>{formatDate(caseItem.created_at)}</p>
                 </div>
               </div>
             </div>

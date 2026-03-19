@@ -32,7 +32,9 @@ const FIELD_ALIASES: Record<keyof Omit<ExtractionResult, 'document_type' | 'docu
   vehicle_reg:         ['registration', 'reg number', 'registration number', 'vehicle registration', 'license plate'],
   vehicle_vin:         ['vin', 'vin number', 'chassis number', 'chassis', 'vin_number'],
   vehicle_engine_number: ['engine number', 'engine no', 'engine_number'],
-  vehicle_mm_code:     ['mm code', 'mmcode', 'mm_code', 'transunion code', 'vehicle code'],
+  vehicle_mm_code:     ['mm code', 'mmcode', 'mm_code', 'transunion code', 'vehicle code', 'glass code', 'identifier code', 'kbb code'],
+  vehicle_identifier_type: ['identifier type', 'code type', 'valuation source type'],
+  vehicle_identifier_value: ['identifier value', 'identifier', 'vehicle identifier'],
   vehicle_colour:      ['colour', 'color', 'vehicle colour', 'vehicle color'],
 
   repairer_name:       ['repairer', 'repairer name', 'workshop', 'panel shop', 'repair shop'],
@@ -48,7 +50,7 @@ const FIELD_ALIASES: Record<keyof Omit<ExtractionResult, 'document_type' | 'docu
   market_value:        ['market value', 'market', 'average market value'],
   new_price:           ['new price', 'otr', 'on the road', 'new vehicle price', 'list price'],
   valuation_date:      ['valuation date', 'date of valuation', 'guide date', 'date'],
-  mm_code_valuation:   ['mm code', 'mmcode', 'vehicle code'],
+  mm_code_valuation:   ['mm code', 'mmcode', 'vehicle code', 'glass code', 'identifier code', 'kbb code'],
 }
 
 /** Normalise a label key for fuzzy matching */
@@ -121,9 +123,9 @@ export function extractPIILocally(rawText: string): Pick<ExtractionResult, 'insu
     result.policy_number = { value: policyMatch[1].trim(), confidence: 'high', is_pii: true }
   }
 
-  // Phone number — SA format
-  const phoneMatch = rawText.match(/(?:\+27|0)\s*\d{2}\s*[\s\-]?\d{3}\s*[\s\-]?\d{4}/)
-  if (phoneMatch?.[0]) {
+  // Phone number — international format (+XX...) or local (leading 0), min 7 digits
+  const phoneMatch = rawText.match(/(?:\+\d{1,3}[\s\-]?)?(?:\(?\d{1,4}\)?[\s\-]?)?\d{2,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4}/)
+  if (phoneMatch?.[0] && phoneMatch[0].replace(/\D/g, '').length >= 7) {
     result.insured_contact = { value: phoneMatch[0].replace(/\s/g, ''), confidence: 'high', is_pii: true }
   }
 

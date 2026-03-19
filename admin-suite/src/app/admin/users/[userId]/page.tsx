@@ -9,6 +9,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useUser, useUpdateUser, useTriggerPasswordReset } from '@/hooks/use-users'
 import { ArrowLeft, Save, User, Building2, Key, Edit2 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { formatDateTime } from '@/lib/utils/formatting'
 
 export default function UserDetailPage() {
   const params = useParams()
@@ -159,7 +160,7 @@ export default function UserDetailPage() {
 
               <div className="pt-4 border-t border-gray-200">
                 <p className="text-sm text-slate">
-                  <strong>Created:</strong> {new Date(user.created_at).toLocaleString('en-ZA')}
+                  <strong>Created:</strong> {formatDateTime(user.created_at)}
                 </p>
               </div>
             </div>

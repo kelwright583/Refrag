@@ -1,281 +1,247 @@
 # Refrag Project Status
 
-**Last Updated:** 18 March 2026
-**Current Focus:** Full audit remediation complete — all phases through 17 built, infrastructure hardened
+**Last Updated:** 19 March 2026
+**Current Focus:** Master rebuild complete — all 8 stages executed per REFRAG_MASTER_REBUILD_PROMPT.md v3.1
 
 ---
 
-## ✅ Phase 1: Foundation & Infrastructure — COMPLETE
+## Architecture Overview (Post-Rebuild)
 
-- ✅ All 17 core tables + admin tables, enum types, indexes, constraints
-- ✅ RLS on all tables with org-scoped policies and helper functions
-- ✅ Supabase project configured (auth, storage bucket: `evidence`)
-- ✅ Three repos scaffolded: mobile-app (Expo), web-app (Next.js), admin-suite (Next.js)
-
----
-
-## ✅ Phase 2: Mobile App — Core Foundation — COMPLETE
-
-- ✅ React Query, Zod, Zustand wired
-- ✅ Cases list with search, create, update, status management
-- ✅ CaseCard, CreateCaseModal, case detail screen
-- ✅ Auth flow with org selection
+- **Vertical-driven UI** — One 5-tab shell configured by `VERTICAL_CONFIGS`, not separate UIs per professional type
+- **Locale-agnostic** — No hardcoded currency symbols, country assumptions, or regulatory references
+- **Adapter pattern** — All external services (OCR, AI, Email, PDF, Payment, Storage, Transcription) behind clean interfaces with dry-run fallbacks
+- **Billing-gated** — All report pack generation passes through `checkAndDeductPackCredit()` atomic gate
+- **Event-instrumented** — All key actions emit `platform_events` for admin analytics
 
 ---
 
-## ✅ Phase 3: Mobile App — Evidence Capture — COMPLETE
+## Stage 1: Schema Migration & Core Data Model — COMPLETE
 
-- ✅ Offline-first upload queue with AsyncStorage persistence
-- ✅ Camera, gallery, document pickers
-- ✅ Tagging system (suggested + custom)
-- ✅ Queue worker with exponential backoff retry
-
----
-
-## ✅ Phase 4: Mobile App — Mandates & Notes — COMPLETE
-
-- ✅ Mandate selection, requirement_checks auto-creation, checklist UI
-- ✅ Evidence linking to requirements
-- ✅ Case notes CRUD and comms log entries
-- ✅ Loading skeletons, empty states, toast notifications
-
----
-
-## ✅ Phase 5: Web App — Foundation & Case Management — COMPLETE
-
-- ✅ Dashboard, case list, search, filters
-- ✅ New Case modal with full form
-- ✅ Case detail page with overview, contacts, status/priority management
-- ✅ Sidebar navigation, top bar, auth middleware
-
----
-
-## ✅ Phase 6: Web App — Evidence & Mandates — COMPLETE
-
-- ✅ Drag-and-drop evidence upload to Supabase Storage
-- ✅ Evidence grid with thumbnails, tags editor, signed URL viewer
-- ✅ Mandate tab: assignment, checklist, evidence linking, completeness summary
-
----
-
-## ✅ Phase 7: Assessment Report Engine & Document Ingestion — COMPLETE
-
-### Schema & Database
-- ✅ 15 new tables, 14 new enums with full RLS
-- ✅ Report pack tables (report_packs, report_pack_items) with RLS
-
-### Types, Validation & Client Layer
-- ✅ Full TypeScript types, Zod schemas, financial calculator, API functions, React Query hooks
-
-### API Routes (all complete)
-- ✅ Full CRUD for assessments, vehicle details, tyres, damages, values, repair, parts, financials, evidence links
-- ✅ Assessment settings, repairers, suppliers
-- ✅ Report packs CRUD with auto-population
-
-### UI Tabs (9-tab Assessment Editor)
-- ✅ InstructionTab, VehicleDetailsTab, TyresTab, DamagesLabourTab, PartsAssessmentTab, MMCodesValuesTab, PhotosEvidenceTab, OutcomeFinancialsTab, FindingsTab
-
-### Document Ingestion Engine
-- ✅ pdf-parse + mammoth for local text extraction
-- ✅ Field mapper with 40+ alias mappings and PII regex extraction
-- ✅ GPT-4o classification and structured extraction
-- ✅ DocumentDropZone and ExtractionReviewPanel components
-
-### OCR Integration (NEW — 18 March 2026)
-- ✅ `/api/ai/ocr-extract` route: PDF text → pdf-parse, images → Google Vision, then GPT-4o field extraction
-- ✅ DamagesLabourTab, PartsAssessmentTab, MMCodesValuesTab wired to real OCR with progress states
-- ✅ Graceful fallback when Google Vision not configured (pdf-parse only for PDFs)
-
-### Communications Templates (NEW — 18 March 2026)
-- ✅ Assessment-specific placeholders: `{{Outcome}}`, `{{ClaimNumber}}`, `{{InsurerName}}`, `{{DateAssessed}}`, etc.
-- ✅ Placeholder resolution utility with full context support
-- ✅ Templates settings page updated with expandable placeholder reference
-
-### Report & Report Pack
-- ✅ Full 15-section printable AssessmentReport with org stationery branding
-- ✅ Report pack page with photo PDF generation, invoice inclusion check, ZIP download, email to insurer
+- Complete rebuild schema: `database/rebuild/001_master_schema.sql`
+  - Extended `organisations` with vertical support, billing fields, international columns
+  - Extended `cases` with vertical, site visit timestamps, intake_source
+  - Extended `evidence` with AI classification, valuation flags
+  - New tables: `risk_items`, `assessments` (generic), `tyre_assessments`, `investigation_findings`, `time_entries`, `vehicle_values`, `reports`, `report_sections`, `report_evidence_links`, `report_packs`, `report_pack_items`, `invoices`, `invoice_line_items`, `case_contacts`, `case_notes`, `recordings`, `appointments`, `platform_events`, `audit_log`, `admin_audit_log`, `staff_users`
+  - Client management tables: `clients`, `client_rate_structures`, `client_rules`
+  - Mandate tables: `mandates`, `mandate_requirements`, `case_mandates`, `requirement_checks`
+  - Comms tables: `comms_log`, `comms_templates`
+  - Intake tables: `intake_documents`, `inbound_emails`
+- Complete RLS policies: `database/rebuild/002_rls_policies.sql`
+  - Helper functions: `is_org_member()`, `is_org_admin()`, `is_staff()`
+  - Standard 4-policy pattern for 27 org-scoped tables
+  - Special policies for audit_log (no update/delete), platform_events (staff-only read), staff_users
+- `generate_case_number()` SQL function (server-side only, no client-side generation)
+- SA-specific hardcoding removed across entire codebase:
+  - `formatCurrency()` utility replaces all hardcoded `R` prefixes
+  - `formatDate()`/`formatDateTime()`/`formatTime()` replace all `'en-ZA'` locale strings
+  - `POPIA` references replaced with configurable `data_protection_regime`
+  - `mm_code` column references migrated to `identifier_type` + `identifier_value`
+  - Address placeholders made generic
+  - VAT rate references made configurable (not hardcoded 15%)
+- Billing columns added: `billing_mode`, `monthly_pack_count`, `monthly_pack_limit`, `billing_period_start`
+- `VERTICAL_CONFIGS` static config: `web-app/src/lib/verticals/config.ts`
+  - All 5 verticals: motor_assessor, property_assessor, loss_adjuster, investigator, general
+  - Complete terminology, section configs, report templates, financial modules, outcomes
+- Adapter interfaces: `web-app/src/lib/adapters/`
+  - OCR (GoogleVision, PdfParse, Mammoth + stub)
+  - AI Extraction (OpenAI + stub)
+  - Email (Resend + DryRun)
+  - PDF (Playwright + PdfKit fallback + stub)
+  - Payment (Stripe + stub)
+  - Storage (Supabase + stub)
+  - Transcription (OpenAI Whisper + stub)
 
 ---
 
-## ✅ Phase 8: Export & Assessor Pack Generation — COMPLETE (Rewritten)
+## Stage 2: Onboarding, Workspace, Client Management, Comms — COMPLETE
 
-- ✅ Export page rewritten for Phase 7 assessment data model
-- ✅ Assessment selector (when multiple assessments per case)
-- ✅ Checkbox options: report PDF, photo evidence, original documents
-- ✅ PDF generation via pdfkit rendering all 15 assessment report sections
-- ✅ Org stationery branding applied to PDF (logo, colours)
-- ✅ Photo evidence appended if selected
-- ✅ Stored in Supabase Storage with signed URL downloads
-- ✅ Export history with version tracking and audit logging
-
----
-
-## ✅ Phase 9: Admin Suite — Foundation — COMPLETE
-
-- ✅ Admin app with staff verification middleware
-- ✅ Organisation management (list, detail, status, plan, members)
-- ✅ User management with real Supabase Admin API (disable/enable, password reset)
-
----
-
-## ✅ Phase 10: Admin Suite — Support & Analytics — COMPLETE
-
-- ✅ Case search and read-only case detail
-- ✅ Evidence viewer with data access logging
-- ✅ Analytics dashboard (DAU/WAU/MAU, cases, evidence)
-- ✅ Insights dashboard with anonymised aggregates and CSV export
-- ✅ System health with real storage stats via admin API
-- ✅ Audit log viewer, data access log viewer
-
----
-
-## ✅ Phase 11: Integration & Polish — COMPLETE
-
-- ✅ Error boundaries on both web-app and admin-suite (including ErrorBoundary components + error.tsx + global-error.tsx)
-- ✅ Toast notification system on both apps
-- ✅ Pagination support on cases and evidence APIs
-- ✅ React Query caching configured
-- ✅ Cross-platform type consistency verified
-- ✅ Silent error catches replaced with proper error handling across all pages
+- **Onboarding wizard** (6-step): Professional type selection → Company profile → First client → Assessment settings → Comms setup → Complete
+  - Multi-select vertical cards with icons
+  - Country-driven defaults (currency, timezone, tax labels)
+  - Client creation with inline rate structure
+  - Vertical-dependent assessment settings
+  - Seeds 3 free report pack credits on completion
+- **5-tab case workspace shell**: `web-app/src/components/case/CaseWorkspace.tsx`
+  - Tabs: Overview | Capture | Assessment | Report | Pack & Invoice
+  - 30 accordion section components (stubs ready for implementation)
+  - Section registry mapping `SectionKey` → React component
+  - Tab components auto-render sections from vertical config
+- **Client management** enhanced:
+  - Tabbed interface: Details | Rate Structures | Rules | Mandates
+  - Full CRUD for rate structures with inline editing
+  - Client rules management
+  - API routes for rates and rules
+- **Mandate builder**: `web-app/src/app/app/mandates/`
+  - List page with filters (client, vertical, active)
+  - Creation page with clone-from support
+  - Builder page with @dnd-kit drag-and-drop
+  - 6 requirement category groups
+  - Requirement cards with inline editing, required/optional toggle, evidence type
+  - Import from existing mandate modal
+  - Full API routes for mandates, requirements, cloning
+- **Smart comms trigger system**:
+  - `checkCommsTrigger()` function with 9 trigger events
+  - `CommsTriggerPrompt` toast with 15s auto-dismiss
+  - `EmailPreviewPanel` slide-out panel (editable, template picker)
+  - `CommsProvider` React context wrapping the app
+  - Default templates per vertical (motor, property, investigator)
 
 ---
 
-## ✅ Phase 15: Org Stationery & Branding — COMPLETE
+## Stage 3: OCR Intake Pipeline — COMPLETE
 
-- ✅ Schema migration: logo_url, primary_colour, accent_colour, text_colour, footer_disclaimer
-- ✅ `org-assets` storage bucket with org-scoped RLS
-- ✅ Stationery settings page: logo upload, 3 colour pickers with hex inputs, footer disclaimer
-- ✅ Live preview panel updating in real time
-- ✅ AssessmentReport.tsx uses stationery (logo, colours, custom footer + "Powered by Refrag")
-- ✅ Export PDF uses stationery branding
-- ✅ Settings hub updated with Stationery & Branding card
-
----
-
-## ✅ Phase 17: Resend Email / Comms Integration — COMPLETE
-
-- ✅ `/api/comms/send` route: template resolution, Resend send, auto-log to comms_log
-- ✅ 6 professional email templates (instruction received, assessment complete, write-off, RFI, invoice, report pack)
-- ✅ Comms tab wired: template picker, recipient auto-fill, body preview, send + auto-log
-- ✅ Report pack "Email to Insurer" wired
-- ✅ Graceful 503 when RESEND_API_KEY not configured
+- **Unified pipeline**: `POST /api/intake/process`
+  - Multipart upload → Supabase Storage → content detection → adapter routing
+  - PDF → pdf-parse (text layer) or Google Vision (scanned)
+  - Images → Google Vision documentTextDetection
+  - DOCX → mammoth
+- **Text normalization**: OCR artifact stripping, whitespace standardization
+- **Rule-based field extraction**: Label dictionary with 160+ label variations
+- **PII ring-fencing**: Regex detection for phone, email, ID, passport — never sent to AI
+- **AI extraction**: For remaining/low-confidence fields (PII-stripped text only)
+- **Confidence scoring**: high (exact label match), medium (fuzzy), low (AI-inferred)
+- **Extraction schemas**: Per-document-role field definitions (instruction, valuation, quote, statement)
+- **ExtractionReviewPanel**: Confidence badges, PII labels, editable values, confirm/re-extract
+- **DocumentDropZone**: Reusable drag-and-drop component with progress states
 
 ---
 
-## ✅ Onboarding Redesign — COMPLETE
+## Stage 4: Billing System — COMPLETE
 
-- ✅ 5-step setup wizard: org details → logo & branding → financial defaults → approved repairers → complete
-- ✅ Progress saved at each step via existing APIs
-- ✅ Getting Started checklist on dashboard (5 items, progress bar, dismiss, auto-hide when complete)
-- ✅ Org profile API (GET/PATCH)
-- ✅ Onboarding completion API
-
----
-
-## ✅ Infrastructure & Security Hardening — COMPLETE
-
-### Database
-- ✅ All RLS files made idempotent (DROP POLICY IF EXISTS before CREATE)
-- ✅ Migration 005 policies updated with `is_staff()` access
-- ✅ RLS added to `case_number_sequences`
-- ✅ `intake_documents.created_by` FK fixed (ON DELETE SET NULL)
-- ✅ `run-migrations.js` updated to include 007 + Phase 7/7B + Phase 15
-- ✅ `migrations/README.md` documents full run order
-
-### Security
-- ✅ Inbound email webhook requires `INBOUND_EMAIL_SECRET` (503 if missing)
-- ✅ Google Vision uses service account credentials (not unsupported apiKey)
-- ✅ Resend client validates API key before creating
-- ✅ All `.env.example` files updated with all used env vars
-- ✅ Security headers on both web-app and admin-suite (CSP, X-Frame-Options, etc.)
-
-### Code Quality
-- ✅ `strict: true` enabled in admin-suite tsconfig
-- ✅ `any` types replaced with proper types in admin API routes
-- ✅ Admin user management wired to real Supabase Admin API
-- ✅ System health uses real storage stats
-- ✅ Toast notifications replace all `alert()` calls
-
-### Error Handling
-- ✅ ErrorBoundary + error.tsx + global-error.tsx on both apps
-- ✅ Toast notification system on both apps
-- ✅ All silent `.catch(() => {})` replaced with proper logging and user feedback
-
-### Testing & CI/CD
-- ✅ Vitest configured with jsdom, React Testing Library
-- ✅ 59 initial tests (calculator, placeholder resolution, error handling)
-- ✅ GitHub Actions CI: lint, typecheck, test, build for both apps
-- ✅ Bundle analysis configured (@next/bundle-analyzer)
+- **Billing plans configuration**: Credit bundles (5/20/50/100) + subscription tiers (Starter/Professional/Studio/Enterprise)
+- **Credit gate**: `checkAndDeductPackCredit()` — atomic deduction for credits mode, monthly counter for subscriptions, overage auto-purchase
+- **Stripe Checkout** for credit purchases and subscription signups
+- **Stripe Billing Portal** for card management
+- **Webhook handler** for payment_intent.succeeded, invoice.payment_succeeded, subscription updates/deletions
+- **Billing settings page** at `/app/settings/billing`:
+  - Mode toggle (pay-per-pack vs subscription)
+  - Credit balance with purchase cards
+  - Subscription usage progress bar
+  - Usage graph (last 6 months)
+  - Billing history
+- All pack generation routes gated through billing check
+- 3 free credits seeded on org creation
 
 ---
 
-## 📋 Upcoming Priorities (Future)
+## Stage 5: Report Builder & PDF Generation — COMPLETE
 
-### Phase 12 — Future Enhancements (Post-MVP)
-- Digital signatures & e-sign
-- Parts negotiation workflow
-- Salvage buyer management
-- Paint system integration (Audatex/SilverDAT)
-- Dark mode (mobile)
-- Advanced camera features (mobile)
-- Billing integration (Stripe)
-
-### Phase 13 — Property Loss Adjusting Module
-- Property assessment schema and input module
-- Room-by-room damage items, contents schedule
-- Underinsurance/average clause calculation
-- Property-specific report template
-
-### Phase 14 — Liability & Specialist Assessments
-- Liability assessment module
-- Heavy commercial vehicles, motorcycles, watercraft, agricultural equipment
-
-### Phase 16 — Investigator Tool
-- Investigation schema (parties, interviews, findings, red flags)
-- Investigation input module (6 tabs)
-- Investigation report builder (narrative-heavy)
-- Investigation mandate checklists
+- **Report builder** (`web-app/src/components/report/ReportBuilder.tsx`):
+  - Outcome selector from vertical config
+  - Section list with progress tracking
+  - AI-assisted drafting per section (never auto-accepted)
+  - Section editor with markdown preview
+  - Live A4 report preview pane
+- **Server-side PDF generation** via Playwright adapter:
+  - `POST /api/reports/[reportId]/generate-pdf`
+  - HTML template with org branding (logo, colors, fonts)
+  - A4 @page rules with proper margins
+  - "Powered by Refrag" footer
+- **Photo evidence PDF**: Each linked photo on its own page with caption, classification, timestamp
+- **ZIP pack generation**: Collects all included items, calls billing gate, stores to Supabase Storage
+- **HTML templates**: `web-app/src/lib/report/html-template.ts` and `photo-pdf-template.ts`
 
 ---
 
-## 📊 Progress Summary
+## Stage 6: Platform Event Instrumentation — COMPLETE
 
-| Phase | Status | % |
-|---|---|---|
-| 1 — Foundation | ✅ Complete | 100% |
-| 2 — Mobile Core | ✅ Complete | 100% |
-| 3 — Mobile Evidence | ✅ Complete | 100% |
-| 4 — Mobile Mandates | ✅ Complete | 100% |
-| 5 — Web Foundation | ✅ Complete | 100% |
-| 6 — Web Evidence & Mandates | ✅ Complete | 100% |
-| 7 — Assessment Engine & Doc Ingestion | ✅ Complete | 100% |
-| 8 — Export (rewritten for Phase 7) | ✅ Complete | 100% |
-| 9 — Admin Foundation | ✅ Complete | 100% |
-| 10 — Admin Analytics | ✅ Complete | 100% |
-| 11 — Integration & Polish | ✅ Complete | 100% |
-| 12 — Future Enhancements | ⏳ Pending | 0% |
-| 13 — Property Loss Adjusting | ⏳ Pending | 0% |
-| 14 — Liability & Specialist | ⏳ Pending | 0% |
-| 15 — Stationery & Branding | ✅ Complete | 100% |
-| 16 — Investigator Tool | ⏳ Pending | 0% |
-| 17 — Resend Comms | ✅ Complete | 100% |
-| Onboarding Redesign | ✅ Complete | 100% |
-| Infrastructure Hardening | ✅ Complete | 100% |
+- `trackEvent()` client-side utility (fire-and-forget POST to /api/events/track)
+- `trackServerEvent()` server-side utility (direct INSERT into platform_events)
+- `useTrackEvent()` React hook
+- 11 core events instrumented: user_logged_in, case_created, case_status_changed, document_dropped, evidence_uploaded, report_pack_created, report_pack_paid, invoice_created, comms_triggered, onboarding_step, onboarding_completed
 
 ---
 
-## 🔑 External Configuration Required (Your Action)
+## Stage 7: Mobile Upload Queue Migration — COMPLETE
 
-Before going live, you need to configure these API keys and external services:
+- SQLite-backed upload queue: `mobile-app/src/lib/db/upload-queue.db.ts`
+  - Replaces AsyncStorage implementation
+  - Atomic transactions, no size limits, queryable
+  - Crash recovery for stuck uploads
+- Queue processor: Max 3 concurrent uploads, exponential backoff (30s → 2m → 10m → 30m)
+- Background sync: AppState, NetInfo, foreground interval, expo-background-fetch
+- React hook: `useUploadQueue()` with stats, items, enqueue, retry, clear
+- UI component: `UploadQueueStatus` with badge and expandable panel
 
-| Item | Where to Set | Notes |
-|---|---|---|
-| **Supabase project** | All `.env` files | URL + anon key for all apps |
-| **SUPABASE_SERVICE_ROLE_KEY** | `admin-suite/.env` | For admin user management |
-| **RESEND_API_KEY** | `web-app/.env` | For email sending. Sign up at resend.com |
-| **RESEND_FROM_EMAIL** | `web-app/.env` | Requires DNS domain verification |
-| **OPENAI_API_KEY** | `web-app/.env` | For document ingestion AI extraction |
-| **Google Cloud Vision** | `web-app/.env` | Service account JSON. See `UPCOMING_FEATURES.md` Priority 3 for step-by-step setup |
-| **Google Maps API key** | `web-app/.env` + `mobile-app/.env` | For address autocomplete |
-| **INBOUND_EMAIL_SECRET** | `web-app/.env` | Shared secret for email webhook |
-| **Run database migrations** | Supabase SQL Editor | Run `schema.sql` → `rls_policies.sql` → `node run-migrations.js` |
+---
+
+## Stage 8: Testing & Validation — COMPLETE
+
+- **235 tests across 10 test files**:
+  - Assessment calculator (46 tests) — multiple VAT rates, currency-agnostic
+  - Label matcher (15 tests) — exact/fuzzy match, document roles
+  - PII detector (18 tests) — international phone formats, emails, IDs
+  - Text normalizer (17 tests) — OCR artifacts, whitespace
+  - Credit gate (6 tests) — credits/subscription modes, audit logging
+  - Comms trigger (7 tests) — template matching, placeholder resolution
+  - Resolve placeholders (18 tests) — all tokens, multi-currency
+  - Vertical config (57 tests) — all 5 verticals validated
+  - Formatting utilities (30 tests) — multi-currency, multi-locale, edge cases
+  - Error handling (21 tests) — from previous audit
+- **International validation sweep** — All Part 20 rules verified:
+  - No hardcoded R currency symbol
+  - No POPIA references (configurable data_protection_regime)
+  - No mm_code columns (identifier_type/identifier_value)
+  - No AsyncStorage in upload queue (SQLite)
+  - No client-side case number generation (server-side RPC)
+  - No window.print() for reports (Playwright PDF)
+  - No external API called inline (adapter pattern)
+  - No PII sent to AI (sanitiser applied)
+  - No hardcoded pricing
+  - No if (vertical === 'motor') branching (config-driven)
+  - All pack generation gated through billing
+  - All comms sends logged
+  - AI drafts require explicit acceptance
+
+---
+
+## External Configuration Required
+
+These require manual setup — code is already wired with adapter fallbacks:
+
+| Service | Env Var | Status |
+|---------|---------|--------|
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Required |
+| Google Cloud Vision | `GOOGLE_CLOUD_VISION_CREDENTIALS` | Optional (stub OCR active) |
+| OpenAI | `OPENAI_API_KEY` | Optional (stub extraction active) |
+| Resend | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Optional (dry-run mode active) |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_*_PRICE_ID_*` | Optional (stub active) |
+| Playwright | `PLAYWRIGHT_EXECUTABLE_PATH` | Optional (PDFKit fallback active) |
+| Google Maps | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional |
+
+---
+
+## File Structure (Key New Directories)
+
+```
+database/rebuild/
+  001_master_schema.sql          — Complete rebuild schema
+  002_rls_policies.sql           — All RLS policies
+
+web-app/src/lib/
+  verticals/config.ts            — VERTICAL_CONFIGS for all 5 verticals
+  verticals/index.ts             — Helper functions
+  adapters/                      — 7 adapter interfaces + implementations
+  intake/                        — OCR pipeline (schemas, PII, label matcher, normalizer)
+  billing/                       — Credit gate, plan configuration
+  comms/                         — Trigger system, default templates, placeholders
+  events/                        — Platform event tracking
+  report/                        — HTML templates for PDF generation
+  utils/formatting.ts            — Locale-agnostic formatting utilities
+
+web-app/src/components/
+  case/CaseWorkspace.tsx         — 5-tab vertical-driven workspace
+  case/AccordionSection.tsx      — Reusable accordion
+  case/sections/                 — 30 section components
+  case/tabs/                     — 5 tab components
+  report/ReportBuilder.tsx       — Report builder with AI draft
+  report/ReportPreview.tsx       — Live A4 preview
+  report/SectionEditor.tsx       — Section editor with AI
+  mandate/                       — RequirementCard, RequirementGroup, ImportModal
+  intake/                        — DocumentDropZone, ExtractionReviewPanel
+  comms/                         — CommsTriggerPrompt, EmailPreviewPanel, CommsProvider
+
+mobile-app/src/lib/
+  db/upload-queue.db.ts          — SQLite-backed upload queue
+  upload/                        — Queue processor, hooks, background sync
+```

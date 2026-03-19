@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { formatDateTime } from '@/lib/utils/formatting'
 
 interface Appointment {
   id: string
@@ -73,7 +74,7 @@ export default function AppointmentsPage() {
             >
               <div>
                 <p className="font-medium text-slate">
-                  {new Date(apt.scheduled_at).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {formatDateTime(apt.scheduled_at)}
                 </p>
                 <p className="text-sm text-muted">
                   {apt.case?.case_number} · {apt.case?.client_name}

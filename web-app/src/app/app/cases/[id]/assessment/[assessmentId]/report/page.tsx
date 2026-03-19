@@ -1,9 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAssessment, useAssessmentSettings } from '@/hooks/use-assessments'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Printer, Download } from 'lucide-react'
+import { ArrowLeft, Download, Loader2 } from 'lucide-react'
 import { AssessmentReport } from '@/components/assessment/AssessmentReport'
 import type { OrgStationery } from '@/components/assessment/AssessmentReport'
 
@@ -27,7 +28,21 @@ export default function AssessmentReportPage() {
     staleTime: 1000 * 60 * 10,
   })
 
-  const handlePrint = () => window.print()
+  const [generating, setGenerating] = useState(false)
+
+  const handleDownloadPdf = async () => {
+    setGenerating(true)
+    try {
+      const res = await fetch(`/api/reports/${assessmentId}/generate-pdf`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to generate PDF')
+      const { url } = await res.json()
+      window.open(url, '_blank')
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -62,11 +77,12 @@ export default function AssessmentReportPage() {
           {assessment.status === 'submitted' ? '✓ Submitted' : assessment.status === 'ready' ? '✓ Ready' : 'Draft'}
         </span>
         <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 border border-[#D4CFC7] rounded-lg text-sm text-charcoal hover:bg-[#FAFAF8] transition-colors"
+          onClick={handleDownloadPdf}
+          disabled={generating}
+          className="flex items-center gap-2 px-4 py-2 border border-[#D4CFC7] rounded-lg text-sm text-charcoal hover:bg-[#FAFAF8] transition-colors disabled:opacity-60"
         >
-          <Printer className="w-4 h-4" />
-          Print / Save PDF
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          {generating ? 'Generating…' : 'Download PDF'}
         </button>
       </div>
 

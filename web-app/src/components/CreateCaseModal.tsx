@@ -410,7 +410,7 @@ export function CreateCaseModal({
                   <input type="text" value={riskData.description} onChange={(e) => setRiskData({ ...riskData, description: e.target.value })} placeholder="Describe the risk item" className="w-full px-3 py-1.5 text-sm border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-slate placeholder:text-muted" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate mb-1">Estimated Value (ZAR)</label>
+                  <label className="block text-xs font-medium text-slate mb-1">Estimated Value</label>
                   <input type="number" value={riskData.estimated_value} onChange={(e) => setRiskData({ ...riskData, estimated_value: e.target.value })} className="w-full px-3 py-1.5 text-sm border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-slate" />
                 </div>
               </div>

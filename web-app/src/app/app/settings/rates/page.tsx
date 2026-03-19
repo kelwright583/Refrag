@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils/formatting'
 
 interface AssessmentRate {
   id?: string
@@ -167,7 +168,7 @@ export default function AssessmentRatesPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate mb-1">Amount (R)</label>
+                <label className="block text-sm font-medium text-slate mb-1">Amount</label>
                 <input
                   type="number"
                   step="0.01"
@@ -207,9 +208,9 @@ export default function AssessmentRatesPage() {
               <div className="bg-[#F5F2EE] rounded-lg p-3 text-sm">
                 <p className="font-medium text-charcoal mb-1">Rate Breakdown</p>
                 <div className="grid grid-cols-3 gap-2 text-slate">
-                  <div>Excl. VAT: <span className="font-medium">R{calcDisplay(editingRate).excl}</span></div>
-                  <div>VAT ({editingRate.vat_pct}%): <span className="font-medium">R{calcDisplay(editingRate).vat}</span></div>
-                  <div>Incl. VAT: <span className="font-medium">R{calcDisplay(editingRate).incl}</span></div>
+                  <div>Excl. VAT: <span className="font-medium">{formatCurrency(Number(calcDisplay(editingRate).excl))}</span></div>
+                  <div>VAT ({editingRate.vat_pct}%): <span className="font-medium">{formatCurrency(Number(calcDisplay(editingRate).vat))}</span></div>
+                  <div>Incl. VAT: <span className="font-medium">{formatCurrency(Number(calcDisplay(editingRate).incl))}</span></div>
                 </div>
               </div>
             )}
@@ -285,9 +286,9 @@ export default function AssessmentRatesPage() {
                   {rate.notes && <p className="text-xs text-muted mt-0.5">{rate.notes}</p>}
                 </div>
                 <div className="text-right mr-4">
-                  <p className="font-medium text-charcoal">R{d.incl}</p>
+                  <p className="font-medium text-charcoal">{formatCurrency(Number(d.incl))}</p>
                   <p className="text-xs text-muted">
-                    Excl R{d.excl} + VAT R{d.vat}
+                    Excl {formatCurrency(Number(d.excl))} + VAT {formatCurrency(Number(d.vat))}
                   </p>
                   <p className="text-xs text-muted">
                     {rate.is_inclusive ? 'Incl. VAT rate' : 'Excl. VAT rate'}

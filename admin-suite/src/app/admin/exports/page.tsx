@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useExports, useExportDownloadUrl } from '@/hooks/use-exports'
 import { Download, FileText, Building2 } from 'lucide-react'
+import { formatDateTime } from '@/lib/utils/formatting'
 
 export default function ExportsPage() {
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
@@ -84,7 +85,7 @@ function ExportCard({ exportItem }: { exportItem: any }) {
             </p>
           )}
           <p className="text-xs text-slate mt-2">
-            Created: {new Date(exportItem.created_at).toLocaleString('en-ZA')}
+            Created: {formatDateTime(exportItem.created_at)}
           </p>
         </div>
         {exportItem.storage_path && (

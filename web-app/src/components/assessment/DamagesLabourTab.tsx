@@ -10,7 +10,8 @@ import {
   useCreatePreExistingDamage,
   useDeletePreExistingDamage,
 } from '@/hooks/use-assessments'
-import { Field, Section, Input, Select, ZarInput, formatZar } from './shared'
+import { Field, Section, Input, Select, CurrencyInput } from './shared'
+import { formatCurrency } from '@/lib/utils/formatting'
 import type { FullMotorAssessment, RepairLineItem, OperationType } from '@/lib/types/assessment'
 import { computeLineItemTotal } from '@/lib/assessment/calculator'
 
@@ -334,7 +335,7 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
             <Input type="email" value={repairForm.repairer_email} onChange={(e) => setR('repairer_email', e.target.value)} />
           </Field>
           <Field label="Quoted Amount (excl. VAT)">
-            <ZarInput value={repairForm.quoted_amount} onChange={(v) => setR('quoted_amount', v)} />
+            <CurrencyInput value={repairForm.quoted_amount} onChange={(v) => setR('quoted_amount', v)} />
           </Field>
           <div className="flex items-end pb-2">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -404,11 +405,11 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
                       {OP_TYPE_LABELS[item.operation_type]}
                     </span>
                   </div>
-                  <div className="col-span-1 text-right text-xs text-slate">{formatZar(item.parts_cost)}</div>
-                  <div className="col-span-1 text-right text-xs text-slate">{formatZar(item.labour_cost)}</div>
-                  <div className="col-span-1 text-right text-xs text-slate">{formatZar(item.paint_cost + item.paint_materials_cost)}</div>
-                  <div className="col-span-1 text-right text-xs text-slate">{formatZar(item.strip_assm_cost + item.frame_cost + item.misc_cost)}</div>
-                  <div className="col-span-1 text-right text-sm font-semibold text-charcoal">{formatZar(total)}</div>
+                  <div className="col-span-1 text-right text-xs text-slate">{formatCurrency(item.parts_cost)}</div>
+                  <div className="col-span-1 text-right text-xs text-slate">{formatCurrency(item.labour_cost)}</div>
+                  <div className="col-span-1 text-right text-xs text-slate">{formatCurrency(item.paint_cost + item.paint_materials_cost)}</div>
+                  <div className="col-span-1 text-right text-xs text-slate">{formatCurrency(item.strip_assm_cost + item.frame_cost + item.misc_cost)}</div>
+                  <div className="col-span-1 text-right text-sm font-semibold text-charcoal">{formatCurrency(total)}</div>
                   <div className="col-span-1 flex justify-center">
                     <input
                       type="checkbox"
@@ -429,10 +430,10 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
 
                 {isExpanded && (
                   <div className="border-t border-[#D4CFC7] bg-[#FAFAF8] px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate">
-                    <div><span className="font-medium">Labour Hours:</span> {item.labour_hours}h @ {formatZar(item.labour_rate)}/h</div>
-                    <div><span className="font-medium">Paint Materials:</span> {formatZar(item.paint_materials_cost)}</div>
-                    <div><span className="font-medium">Strip &amp; Assemble:</span> {formatZar(item.strip_assm_cost)}</div>
-                    <div><span className="font-medium">Frame:</span> {formatZar(item.frame_cost)}</div>
+                    <div><span className="font-medium">Labour Hours:</span> {item.labour_hours}h @ {formatCurrency(item.labour_rate)}/h</div>
+                    <div><span className="font-medium">Paint Materials:</span> {formatCurrency(item.paint_materials_cost)}</div>
+                    <div><span className="font-medium">Strip &amp; Assemble:</span> {formatCurrency(item.strip_assm_cost)}</div>
+                    <div><span className="font-medium">Frame:</span> {formatCurrency(item.frame_cost)}</div>
                     {item.is_sublet && <div className="col-span-2"><span className="font-medium">Sublet Supplier:</span> {item.sublet_supplier}</div>}
                     {item.notes && <div className="col-span-4"><span className="font-medium">Notes:</span> {item.notes}</div>}
                   </div>
@@ -459,27 +460,27 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
               </Field>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              <Field label="Parts (R)">
-                <ZarInput value={newItem.parts_cost} onChange={(v) => setN('parts_cost', v)} />
+              <Field label="Parts">
+                <CurrencyInput value={newItem.parts_cost} onChange={(v) => setN('parts_cost', v)} />
               </Field>
               <Field label="Labour Hours">
                 <input type="number" min={0} step={0.5} value={newItem.labour_hours || ''} onChange={(e) => setN('labour_hours', parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-copper/30" />
               </Field>
-              <Field label="Labour Rate (R/h)">
-                <ZarInput value={newItem.labour_rate} onChange={(v) => setN('labour_rate', v)} />
+              <Field label="Labour Rate (/h)">
+                <CurrencyInput value={newItem.labour_rate} onChange={(v) => setN('labour_rate', v)} />
               </Field>
-              <Field label="Paint (R)">
-                <ZarInput value={newItem.paint_cost} onChange={(v) => setN('paint_cost', v)} />
+              <Field label="Paint">
+                <CurrencyInput value={newItem.paint_cost} onChange={(v) => setN('paint_cost', v)} />
               </Field>
-              <Field label="Paint Mat. (R)">
-                <ZarInput value={newItem.paint_materials_cost} onChange={(v) => setN('paint_materials_cost', v)} />
+              <Field label="Paint Mat.">
+                <CurrencyInput value={newItem.paint_materials_cost} onChange={(v) => setN('paint_materials_cost', v)} />
               </Field>
-              <Field label="Strip/Assm (R)">
-                <ZarInput value={newItem.strip_assm_cost} onChange={(v) => setN('strip_assm_cost', v)} />
+              <Field label="Strip/Assm">
+                <CurrencyInput value={newItem.strip_assm_cost} onChange={(v) => setN('strip_assm_cost', v)} />
               </Field>
-              <Field label="Misc (R)">
-                <ZarInput value={newItem.misc_cost} onChange={(v) => setN('misc_cost', v)} />
+              <Field label="Misc">
+                <CurrencyInput value={newItem.misc_cost} onChange={(v) => setN('misc_cost', v)} />
               </Field>
             </div>
             <div className="flex flex-wrap items-center gap-4">
@@ -525,12 +526,12 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
           <div className="mt-4 pt-4 border-t border-[#D4CFC7] flex flex-col items-end gap-1">
             <div className="flex items-center gap-6">
               <span className="text-sm text-slate">Total Assessed Repair (excl. VAT)</span>
-              <span className="text-xl font-bold text-charcoal">{formatZar(grandTotal)}</span>
+              <span className="text-xl font-bold text-charcoal">{formatCurrency(grandTotal)}</span>
             </div>
             {maxRepair != null && (
               <div className={`flex items-center gap-2 text-sm font-medium ${isUneconomical ? 'text-red-600' : 'text-emerald-600'}`}>
                 {isUneconomical ? '⚠ Uneconomical to repair — exceeds max threshold' : '✓ Within repair threshold'}
-                {' '}({formatZar(maxRepair)})
+                {' '}({formatCurrency(maxRepair)})
               </div>
             )}
           </div>

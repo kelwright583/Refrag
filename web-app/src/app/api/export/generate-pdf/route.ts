@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
 import PDFDocument from 'pdfkit'
+import { formatCurrency, formatDate } from '@/lib/utils/formatting'
 import type {
   FullMotorAssessment,
   RepairLineItem,
@@ -51,14 +52,16 @@ const OUTCOME_LABEL: Record<string, string> = {
   further_investigation: 'FURTHER INVESTIGATION REQUIRED',
 }
 
-function zar(amount: number | null | undefined): string {
-  if (amount == null) return 'R -'
-  return `R ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+let _locale: string | undefined
+let _currencyCode: string | undefined
+
+function fmtCurrency(amount: number | null | undefined): string {
+  return formatCurrency(amount, _locale, _currencyCode)
 }
 
 function fmtDate(d: string | null): string {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
+  return formatDate(d, _locale, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 function titleCase(s: string): string {
@@ -129,11 +132,13 @@ export async function POST(request: NextRequest) {
     // Fetch org stationery
     const { data: orgData } = await supabase
       .from('organisations')
-      .select('logo_url, primary_colour, accent_colour, text_colour, footer_disclaimer, name, legal_name, registration_number, vat_number')
+      .select('logo_url, primary_colour, accent_colour, text_colour, footer_disclaimer, name, legal_name, registration_number, vat_number, locale, currency_code')
       .eq('id', orgId)
       .single()
 
     const stationery: Stationery = orgData ?? {}
+    _locale = (orgData as any)?.locale || undefined
+    _currencyCode = (orgData as any)?.currency_code || undefined
 
     // Fetch logo buffer if logo_url is a storage path
     let logoBuffer: Buffer | null = null
@@ -504,7 +509,7 @@ async function buildAssessmentPdf(
     infoRow('VIN Number', v?.vin_number)
     infoRow('Engine Number', v?.engine_number)
     infoRow('Mileage', v?.mileage_unknown ? 'Not legible' : (v?.mileage != null ? `${v.mileage.toLocaleString()} km` : null))
-    infoRow('MM Code', v?.mm_code)
+    infoRow(v?.identifier_type || 'Identifier Code', v?.identifier_value ?? v?.mm_code)
     infoRow('Transmission', v?.transmission)
     infoRow('Colour', v?.colour)
 
@@ -607,22 +612,22 @@ async function buildAssessmentPdf(
     doc.moveDown(0.3)
 
     const valuationItems = [
-      ['New Price (OTR)', zar(vals?.new_price_value)],
-      ['Retail Value', zar(vals?.retail_value)],
-      ['Trade Value', zar(vals?.trade_value)],
-      ['Market Value', zar(vals?.market_value)],
-      ['Extras Value', zar(vals?.extras_value)],
-      ['Less Old Damages', zar(vals?.less_old_damages)],
+      ['New Price (OTR)', fmtCurrency(vals?.new_price_value)],
+      ['Retail Value', fmtCurrency(vals?.retail_value)],
+      ['Trade Value', fmtCurrency(vals?.trade_value)],
+      ['Market Value', fmtCurrency(vals?.market_value)],
+      ['Extras Value', fmtCurrency(vals?.extras_value)],
+      ['Less Old Damages', fmtCurrency(vals?.less_old_damages)],
     ]
     for (const [label, value] of valuationItems) {
       infoRow(label, value)
     }
     doc.moveDown(0.3)
     doc.fontSize(9).font('Helvetica-Bold').fillColor(textCol)
-      .text(`Vehicle Total Value: ${zar(vehicleTotalValue)}`)
-    doc.text(`Max Repair Threshold (${maxRepairPct}%): ${zar(maxRepairValue)}`)
+      .text(`Vehicle Total Value: ${fmtCurrency(vehicleTotalValue)}`)
+    doc.text(`Max Repair Threshold (${maxRepairPct}%): ${fmtCurrency(maxRepairValue)}`)
     if (isWriteOff) {
-      doc.text(`Salvage Value: ${zar(vals?.salvage_value)}`)
+      doc.text(`Salvage Value: ${fmtCurrency(vals?.salvage_value)}`)
     }
     doc.font('Helvetica')
 
@@ -636,7 +641,7 @@ async function buildAssessmentPdf(
       infoRow('Contact Number', ra.repairer_contact)
       infoRow('Email', ra.repairer_email)
       infoRow('Approved Panel Repairer', ra.approved_repairer ? 'Yes' : 'No')
-      infoRow('Repairer Quoted Amount', ra.quoted_amount != null ? zar(ra.quoted_amount) : null)
+      infoRow('Repairer Quoted Amount', ra.quoted_amount != null ? fmtCurrency(ra.quoted_amount) : null)
     }
 
     // ──────────────────────────────────────────────────
@@ -674,11 +679,11 @@ async function buildAssessmentPdf(
           [
             { value: item.description, width: colW.desc },
             { value: OP_TYPE_LABEL[item.operation_type], width: colW.type, align: 'center' },
-            { value: item.parts_cost > 0 ? zar(item.parts_cost) : '—', width: colW.parts, align: 'right' },
-            { value: labour > 0 ? zar(labour) : '—', width: colW.labour, align: 'right' },
-            { value: paint > 0 ? zar(paint) : '—', width: colW.paint, align: 'right' },
-            { value: other > 0 ? zar(other) : '—', width: colW.other, align: 'right' },
-            { value: zar(total), width: colW.total, align: 'right' },
+            { value: item.parts_cost > 0 ? fmtCurrency(item.parts_cost) : '—', width: colW.parts, align: 'right' },
+            { value: labour > 0 ? fmtCurrency(labour) : '—', width: colW.labour, align: 'right' },
+            { value: paint > 0 ? fmtCurrency(paint) : '—', width: colW.paint, align: 'right' },
+            { value: other > 0 ? fmtCurrency(other) : '—', width: colW.other, align: 'right' },
+            { value: fmtCurrency(total), width: colW.total, align: 'right' },
             { value: item.is_approved ? '✓' : '✗', width: colW.appr, align: 'center' },
           ],
           i % 2 === 1 ? '#FAFAF8' : undefined,
@@ -689,7 +694,7 @@ async function buildAssessmentPdf(
       if (bettermentTotal > 0) {
         doc.moveDown(0.2)
         doc.fontSize(8).font('Helvetica-Oblique').fillColor('#9a3412')
-          .text(`Less: Betterment Deduction — (${zar(bettermentTotal)})`, { align: 'right' })
+          .text(`Less: Betterment Deduction — (${fmtCurrency(bettermentTotal)})`, { align: 'right' })
         doc.font('Helvetica').fillColor(textCol)
       }
 
@@ -697,7 +702,7 @@ async function buildAssessmentPdf(
       const totY = doc.y + 2
       doc.rect(50, totY, PAGE_W, 20).fill(accent)
       doc.fillColor('#FFFFFF').fontSize(9).font('Helvetica-Bold')
-        .text(`Assessed Repair Total (excl. VAT): ${zar(repairTotal)}`, 54, totY + 5, { width: PAGE_W - 8, align: 'right' })
+        .text(`Assessed Repair Total (excl. VAT): ${fmtCurrency(repairTotal)}`, 54, totY + 5, { width: PAGE_W - 8, align: 'right' })
       doc.fillColor(textCol).font('Helvetica')
       doc.y = totY + 26
 
@@ -706,7 +711,7 @@ async function buildAssessmentPdf(
         checkPage(30)
         doc.fontSize(8).font('Helvetica-Bold').fillColor('#b91c1c')
           .text(
-            `UNECONOMICAL TO REPAIR: Repair total (${zar(repairTotal + partsTotal)}) exceeds max threshold of ${zar(maxRepairValue)} by ${zar(uneconomical.exceedsByAmount)} (${uneconomical.exceedsByPercent.toFixed(1)}%).`,
+            `UNECONOMICAL TO REPAIR: Repair total (${fmtCurrency(repairTotal + partsTotal)}) exceeds max threshold of ${fmtCurrency(maxRepairValue)} by ${fmtCurrency(uneconomical.exceedsByAmount)} (${uneconomical.exceedsByPercent.toFixed(1)}%).`,
           )
         doc.fillColor(textCol).font('Helvetica')
       }
@@ -726,11 +731,11 @@ async function buildAssessmentPdf(
         doc.fillColor(textCol)
       }
       doc.moveDown(0.3)
-      infoRow('Parts (excl. VAT)', zar(pa.parts_amount_excl_vat))
-      infoRow('Handling Fee (excl. VAT)', zar(pa.parts_handling_fee_excl_vat))
+      infoRow('Parts (excl. VAT)', fmtCurrency(pa.parts_amount_excl_vat))
+      infoRow('Handling Fee (excl. VAT)', fmtCurrency(pa.parts_handling_fee_excl_vat))
       doc.fontSize(9).font('Helvetica-Bold').fillColor(textCol)
-        .text(`Total Parts (excl. VAT): ${zar(partsTotal)}`)
-        .text(`Total Parts (incl. VAT): ${zar(partsTotal * (1 + vatRate / 100))}`)
+        .text(`Total Parts (excl. VAT): ${fmtCurrency(partsTotal)}`)
+        .text(`Total Parts (incl. VAT): ${fmtCurrency(partsTotal * (1 + vatRate / 100))}`)
       doc.font('Helvetica')
     }
 
@@ -762,21 +767,21 @@ async function buildAssessmentPdf(
     }
 
     if (isWriteOff && writeOffSettlement) {
-      financialRow('Vehicle Total Value', zar(vehicleTotalValue))
-      financialRow('Less: Salvage Value', `(${zar(lessSalvage)})`)
-      financialRow('Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${zar(lessExcess)})` : '—'))
-      financialRow('NET SETTLEMENT', zar(writeOffSettlement.netSettlement), true)
+      financialRow('Vehicle Total Value', fmtCurrency(vehicleTotalValue))
+      financialRow('Less: Salvage Value', `(${fmtCurrency(lessSalvage)})`)
+      financialRow('Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${fmtCurrency(lessExcess)})` : '—'))
+      financialRow('NET SETTLEMENT', fmtCurrency(writeOffSettlement.netSettlement), true)
     } else {
-      financialRow('Repair Labour & Operations (excl. VAT)', zar(repairTotal))
-      financialRow('Parts incl. Handling (excl. VAT)', zar(partsTotal))
+      financialRow('Repair Labour & Operations (excl. VAT)', fmtCurrency(repairTotal))
+      financialRow('Parts incl. Handling (excl. VAT)', fmtCurrency(partsTotal))
       if (bettermentTotal > 0) {
-        financialRow('Less: Betterment Deduction', `(${zar(bettermentTotal)})`)
+        financialRow('Less: Betterment Deduction', `(${fmtCurrency(bettermentTotal)})`)
       }
-      financialRow('Total (excl. VAT)', zar(totalExclVat))
-      financialRow(`VAT (${vatRate}%)`, zar(vatAmount))
-      financialRow('Total (incl. VAT)', zar(totalInclVat))
-      financialRow('Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${zar(lessExcess)})` : '—'))
-      financialRow('GRAND TOTAL', zar(grandTotal), true)
+      financialRow('Total (excl. VAT)', fmtCurrency(totalExclVat))
+      financialRow(`VAT (${vatRate}%)`, fmtCurrency(vatAmount))
+      financialRow('Total (incl. VAT)', fmtCurrency(totalInclVat))
+      financialRow('Less: Excess', excessTba ? 'TBA' : (lessExcess ? `(${fmtCurrency(lessExcess)})` : '—'))
+      financialRow('GRAND TOTAL', fmtCurrency(grandTotal), true)
     }
 
     // ──────────────────────────────────────────────────
@@ -828,7 +833,7 @@ async function buildAssessmentPdf(
       || `This report has been prepared for the purposes of insurance loss assessment only.${withoutPrejudice ? ' This assessment is issued without prejudice and does not constitute an admission of liability.' : ''} The findings are based on the vehicle's condition at the time of inspection.`
     doc.text(disclaimer, 50, doc.y, { width: PAGE_W })
     doc.moveDown(0.3)
-    doc.text(`Assessment Ref: ${assessment.claim_number || assessment.id.slice(0, 8).toUpperCase()}   |   Generated: ${new Date().toLocaleDateString('en-ZA')}`, { width: PAGE_W, align: 'center' })
+    doc.text(`Assessment Ref: ${assessment.claim_number || assessment.id.slice(0, 8).toUpperCase()}   |   Generated: ${formatDate(new Date(), _locale)}`, { width: PAGE_W, align: 'center' })
 
     addFooter()
 

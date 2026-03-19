@@ -15,6 +15,7 @@ import { PhotosEvidenceTab } from '@/components/assessment/PhotosEvidenceTab'
 import { OutcomeFinancialsTab } from '@/components/assessment/OutcomeFinancialsTab'
 import { FindingsTab } from '@/components/assessment/FindingsTab'
 import type { MotorAssessment } from '@/lib/types/assessment'
+import { formatDate } from '@/lib/utils/formatting'
 
 const TABS = [
   { key: 'instruction', label: 'Instruction', icon: ClipboardList },
@@ -154,7 +155,7 @@ export default function AssessmentPage() {
                     </div>
                     <p className="text-sm text-slate mt-0.5">
                       {a.claim_number ? `Claim: ${a.claim_number}` : 'No claim number'}
-                      {a.date_assessed ? ` · Assessed: ${new Date(a.date_assessed).toLocaleDateString('en-ZA')}` : ''}
+                      {a.date_assessed ? ` · Assessed: ${formatDate(a.date_assessed)}` : ''}
                     </p>
                   </div>
                 </div>

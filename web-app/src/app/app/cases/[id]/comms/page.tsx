@@ -14,6 +14,7 @@ import { EMAIL_TEMPLATES, resolveTemplatePlaceholders } from '@/lib/comms/email-
 import { markdownToHtml } from '@/lib/utils/markdown'
 import { useToast } from '@/components/Toast'
 import { ArrowLeft, Send, FileText, Mail, MessageSquare, Loader2, X } from 'lucide-react'
+import { formatDate, formatDateTime } from '@/lib/utils/formatting'
 
 export default function CaseCommsPage() {
   const params = useParams()
@@ -51,7 +52,7 @@ export default function CaseCommsPage() {
         BrokerName: caseData.broker_name || '',
         ClaimReference: caseData.claim_reference || '',
         LossDate: caseData.loss_date
-          ? new Date(caseData.loss_date).toLocaleDateString('en-ZA')
+          ? formatDate(caseData.loss_date)
           : '',
         Location: caseData.location || '',
       }
@@ -213,7 +214,7 @@ export default function CaseCommsPage() {
                       )}
                     </div>
                     <span className="text-xs text-slate">
-                      {new Date(entry.created_at).toLocaleString('en-ZA')}
+                      {formatDateTime(entry.created_at)}
                     </span>
                   </div>
 

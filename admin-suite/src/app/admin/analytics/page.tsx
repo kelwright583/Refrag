@@ -6,6 +6,7 @@
 
 import { useAnalytics } from '@/hooks/use-analytics'
 import { Building2, Users, FileText, Image, TrendingUp } from 'lucide-react'
+import { formatDate } from '@/lib/utils/formatting'
 
 export default function AnalyticsPage() {
   const { data: metrics, isLoading } = useAnalytics()
@@ -82,7 +83,7 @@ export default function AnalyticsPage() {
               {metrics.daily_stats.map((stat) => (
                 <tr key={stat.date} className="border-b border-gray-100">
                   <td className="py-2 px-4 text-charcoal">
-                    {new Date(stat.date).toLocaleDateString('en-ZA')}
+                    {formatDate(stat.date)}
                   </td>
                   <td className="py-2 px-4 text-right text-charcoal">{stat.cases}</td>
                   <td className="py-2 px-4 text-right text-charcoal">{stat.evidence}</td>

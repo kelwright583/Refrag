@@ -21,6 +21,7 @@ import {
   FileArchive,
 } from 'lucide-react'
 import type { MotorAssessment } from '@/lib/types/assessment'
+import { formatDate, formatDateTime } from '@/lib/utils/formatting'
 
 const STATUS_BADGE: Record<string, string> = {
   draft: 'bg-yellow-100 text-yellow-800',
@@ -35,15 +36,6 @@ const OUTCOME_LABEL: Record<string, string> = {
   partial_theft: 'Partial Theft',
   rejected: 'Rejected',
   further_investigation: 'Further Investigation',
-}
-
-function formatDate(dateString: string | null) {
-  if (!dateString) return '—'
-  return new Date(dateString).toLocaleDateString('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
 }
 
 function titleCase(s: string) {
@@ -302,7 +294,7 @@ function ExportItem({ exportItem }: { exportItem: any }) {
           <div className="space-y-1 text-sm text-slate">
             <p>
               <strong>Created:</strong>{' '}
-              {new Date(exportItem.created_at).toLocaleString('en-ZA')}
+              {formatDateTime(exportItem.created_at)}
             </p>
             {exportItem.meta?.assessment_type && (
               <p>
@@ -318,7 +310,7 @@ function ExportItem({ exportItem }: { exportItem: any }) {
             {exportItem.meta?.generated_at && (
               <p>
                 <strong>Generated:</strong>{' '}
-                {new Date(exportItem.meta.generated_at).toLocaleString('en-ZA')}
+                {formatDateTime(exportItem.meta.generated_at)}
               </p>
             )}
           </div>

@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { useUploadQueueStore } from '@/store/upload-queue';
+import { useUploadQueue } from '@/lib/upload/queue-hooks';
 import { useOrgStore } from '@/store/org';
 import { ModalHeader } from '@/components/ModalHeader';
 import { colors, typography } from '@/lib/theme/colors';
@@ -56,7 +56,7 @@ export function EvidenceCaptureModal({
   const [customTag, setCustomTag] = useState('');
   const [loading, setLoading] = useState(false);
   const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
-  const addToQueue = useUploadQueueStore((state) => state.addToQueue);
+  const { enqueue } = useUploadQueue();
   const selectedOrgId = useOrgStore((state) => state.selectedOrgId);
 
   const handleCapture = async () => {
@@ -147,8 +147,7 @@ export function EvidenceCaptureModal({
       const blob = await response.blob();
       const fileSize = blob.size;
 
-      // Add to upload queue
-      await addToQueue({
+      await enqueue({
         local_file_uri: fileUri,
         org_id: selectedOrgId,
         case_id: caseId,
@@ -156,9 +155,11 @@ export function EvidenceCaptureModal({
         content_type: contentType,
         file_name: fileName,
         file_size: fileSize,
-        tags,
-        notes: notes.trim() || undefined,
+        tags: JSON.stringify(tags),
+        notes: notes.trim() || '',
         captured_at: new Date().toISOString(),
+        location_lat: null,
+        location_lng: null,
       });
 
       // Reset form

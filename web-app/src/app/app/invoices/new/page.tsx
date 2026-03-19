@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Trash2, Calculator } from 'lucide-react'
+import { formatDate, formatCurrency, getCurrencySymbol } from '@/lib/utils/formatting'
 
 interface CaseOption {
   id: string
@@ -130,7 +131,7 @@ export default function NewInvoicePage() {
     if (c.vehicle_registration) details.push(`Reg: ${c.vehicle_registration}`)
     if (c.vehicle_manufacturer && c.vehicle_model) details.push(`Vehicle: ${c.vehicle_manufacturer} ${c.vehicle_model}`)
     else if (c.vehicle_manufacturer) details.push(`Make: ${c.vehicle_manufacturer}`)
-    if (c.loss_date) details.push(`Date of Loss: ${new Date(c.loss_date).toLocaleDateString('en-ZA')}`)
+    if (c.loss_date) details.push(`Date of Loss: ${formatDate(c.loss_date)}`)
     if (c.assessment_type) details.push(`Assessment Type: ${c.assessment_type.replace(/_/g, ' ')}`)
 
     if (details.length > 0) {
@@ -453,7 +454,7 @@ export default function NewInvoicePage() {
                           <option value="" disabled>Apply saved rate...</option>
                           {rates.map((r) => (
                             <option key={r.id} value={r.id}>
-                              {r.rate_name} - R{r.amount.toFixed(2)} ({r.is_inclusive ? 'incl' : 'excl'})
+                              {r.rate_name} - {formatCurrency(r.amount)} ({r.is_inclusive ? 'incl' : 'excl'})
                             </option>
                           ))}
                         </select>
@@ -511,10 +512,10 @@ export default function NewInvoicePage() {
                     </div>
                     <div className="col-span-2 text-right">
                       <div className="text-sm font-medium text-charcoal py-1.5">
-                        R{inclTotal.toFixed(2)}
+                        {formatCurrency(inclTotal)}
                       </div>
                       <div className="text-xs text-muted">
-                        Excl: R{exclTotal.toFixed(2)}
+                        Excl: {formatCurrency(exclTotal)}
                       </div>
                     </div>
                     <div className="col-span-1 flex justify-end">
@@ -543,23 +544,23 @@ export default function NewInvoicePage() {
           <div className="max-w-sm ml-auto space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted">Total Discount:</span>
-              <span className="font-medium text-slate">R{totals.totalDiscount}</span>
+              <span className="font-medium text-slate">{formatCurrency(Number(totals.totalDiscount))}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Total Exclusive:</span>
-              <span className="font-medium text-slate">R{totals.totalExcl}</span>
+              <span className="font-medium text-slate">{formatCurrency(Number(totals.totalExcl))}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Total VAT:</span>
-              <span className="font-medium text-slate">R{totals.totalVat}</span>
+              <span className="font-medium text-slate">{formatCurrency(Number(totals.totalVat))}</span>
             </div>
             <div className="flex justify-between border-t border-[#D4CFC7] pt-2">
               <span className="text-muted">Sub Total:</span>
-              <span className="font-medium text-slate">R{totals.subTotal}</span>
+              <span className="font-medium text-slate">{formatCurrency(Number(totals.subTotal))}</span>
             </div>
             <div className="flex justify-between border-t border-[#D4CFC7] pt-2">
               <span className="font-medium text-charcoal">Grand Total:</span>
-              <span className="text-lg font-bold text-accent">R{totals.grandTotal}</span>
+              <span className="text-lg font-bold text-accent">{formatCurrency(Number(totals.grandTotal))}</span>
             </div>
           </div>
         </section>

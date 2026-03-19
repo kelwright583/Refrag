@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, FileText, Download, Eye } from 'lucide-react'
+import { formatDate, formatCurrency } from '@/lib/utils/formatting'
 
 interface InvoiceRow {
   id: string
@@ -21,15 +22,6 @@ interface InvoiceRow {
   case_id: string
   case?: { id: string; case_number: string; client_name: string }
   client?: { id: string; name: string }
-}
-
-function formatDate(d: string | null): string {
-  if (!d) return '-'
-  return new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function formatCurrency(n: number): string {
-  return `R${Number(n).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export default function InvoicesPage() {
@@ -179,7 +171,7 @@ export default function InvoicesPage() {
                 </div>
 
                 <div className="text-right mr-4">
-                  <p className="text-lg font-bold text-charcoal">{formatCurrency(total)}</p>
+                  <p className="text-lg font-bold text-charcoal">{formatCurrency(total, undefined, inv.currency)}</p>
                   <p className="text-xs text-muted">{inv.currency}</p>
                 </div>
 

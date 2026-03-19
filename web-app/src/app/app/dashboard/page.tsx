@@ -17,6 +17,7 @@ import {
   X,
   Rocket,
 } from 'lucide-react'
+import { formatTime } from '@/lib/utils/formatting'
 
 const CASE_STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
@@ -145,8 +146,7 @@ export default function DashboardPage() {
       .slice(0, 5)
   }, [cases])
 
-  const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+  const fmtTime = (iso: string) => formatTime(iso)
 
   const links = [
     { href: '/app/cases', label: 'Cases', icon: FileText, desc: 'Manage cases and assignments', count: stats.total },
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                     className="flex items-center gap-4 py-2 hover:bg-[#F5F2EE] rounded-lg px-2 -mx-2 transition-colors"
                   >
                     <span className="text-sm font-semibold text-charcoal w-14">
-                      {formatTime(apt.scheduled_at)}
+                      {fmtTime(apt.scheduled_at)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-slate truncate">

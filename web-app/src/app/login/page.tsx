@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/events'
 import { RefragLogo } from '@/components/brand'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -32,6 +33,7 @@ export default function LoginPage() {
 
       if (signInError) throw signInError
 
+      trackEvent('user_logged_in', { method: 'password' })
       router.push('/app/dashboard')
       router.refresh()
     } catch (err: unknown) {

@@ -39,7 +39,7 @@ export default function AssessmentSettingsPage() {
   const [settingsSaved, setSettingsSaved] = useState(false)
 
   const [form, setForm] = useState<Record<string, any>>({
-    vat_rate: 15,
+    vat_rate: 0,
     max_repair_percentage: 75,
     parts_handling_fee_percentage: 0,
     labour_rate_panel: 0,
@@ -59,7 +59,7 @@ export default function AssessmentSettingsPage() {
   const [formInitialized, setFormInitialized] = useState(false)
   if (settings && !formInitialized) {
     setForm({
-      vat_rate: settings.vat_rate ?? 15,
+      vat_rate: settings.vat_rate ?? 0,
       max_repair_percentage: settings.max_repair_percentage ?? 75,
       parts_handling_fee_percentage: settings.parts_handling_fee_percentage ?? 0,
       labour_rate_panel: settings.labour_rate_panel ?? 0,
@@ -172,7 +172,7 @@ export default function AssessmentSettingsPage() {
                 max={100}
                 step={0.5}
                 value={form.vat_rate}
-                onChange={(e) => set('vat_rate', parseFloat(e.target.value) || 15)}
+                onChange={(e) => set('vat_rate', parseFloat(e.target.value) || 0)}
                 className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-copper/30"
               />
             </Field>
@@ -202,7 +202,7 @@ export default function AssessmentSettingsPage() {
         </Section>
 
         {/* Labour Rates */}
-        <Section title="Default Labour Rates (R / hour)">
+        <Section title="Default Labour Rates (per hour)">
           <p className="text-xs text-slate mb-4">These rates are applied automatically when adding repair line items. Overrideable per line item.</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {LABOUR_RATE_FIELDS.map(({ key, label }) => (

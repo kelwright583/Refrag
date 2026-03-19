@@ -1,5 +1,6 @@
 // Shared utility components for assessment tabs
 import React from 'react'
+import { formatCurrency, getCurrencySymbol } from '@/lib/utils/formatting'
 
 interface FieldProps {
   label: string
@@ -100,14 +101,16 @@ export function SaveBar({ onSave, isSaving, saved, onNext, nextLabel = 'Next' }:
   )
 }
 
-export function ZarInput({
+export function CurrencyInput({
   value,
   onChange,
+  currencySymbol,
   ...props
-}: { value: number; onChange: (v: number) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
+}: { value: number; onChange: (v: number) => void; currencySymbol?: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
+  const symbol = currencySymbol ?? '$'
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate text-sm">R</span>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate text-sm">{symbol}</span>
       <input
         type="number"
         min={0}
@@ -121,7 +124,12 @@ export function ZarInput({
   )
 }
 
-export function formatZar(amount: number | null | undefined): string {
-  if (amount == null) return 'R -'
-  return `R ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+/** @deprecated Use CurrencyInput instead */
+export const ZarInput = CurrencyInput
+
+export { formatCurrency }
+
+/** @deprecated Use formatCurrency from @/lib/utils/formatting instead */
+export function formatZar(amount: number | null | undefined, locale?: string, currencyCode?: string): string {
+  return formatCurrency(amount, locale, currencyCode)
 }

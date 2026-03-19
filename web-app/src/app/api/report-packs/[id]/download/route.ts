@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { checkAndDeductPackCredit } from '@/lib/billing/credit-gate'
 import JSZip from 'jszip'
 
 const ITEM_TYPE_FILE_SUFFIXES: Record<string, string> = {
   assessment_report: 'Assessment_Report',
-  mm_codes: 'MM_Codes_Valuation',
+  vehicle_valuation: 'Vehicle_Valuation',
   parts_quote: 'Parts_Quotation',
   labour_quote: 'Labour_Estimate',
   photos: 'Photo_Evidence',
@@ -27,6 +28,26 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .single()
 
     if (packError || !pack) return serverError('Report pack not found', 404)
+
+    // Billing gate — verify credits before generating download
+    if (pack.payment_status !== 'paid') {
+      const creditResult = await checkAndDeductPackCredit(orgId)
+      if (creditResult.status === 'no_credits') {
+        return serverError('No credits remaining. Please purchase more.', 402)
+      }
+      if (creditResult.status === 'subscription_limit') {
+        return serverError('Monthly pack limit reached. Credits required for overage.', 402)
+      }
+      if (creditResult.status === 'not_active') {
+        return serverError('Billing account not active.', 402)
+      }
+
+      await supabase
+        .from('report_packs')
+        .update({ payment_status: 'paid', pack_credits_used: 1 })
+        .eq('id', packId)
+        .eq('org_id', orgId)
+    }
 
     const { data: items, error: itemsError } = await supabase
       .from('report_pack_items')

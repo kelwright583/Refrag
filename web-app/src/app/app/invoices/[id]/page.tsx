@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Trash2, FileText, Download, Pencil, Calculator } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils/formatting'
 
 interface LineItem {
   id?: string
@@ -410,11 +411,11 @@ export default function InvoiceDetailPage() {
                       ))}
                     </td>
                     <td className="text-right px-4 py-3 text-slate">{Number(li.quantity).toFixed(2)}</td>
-                    <td className="text-right px-4 py-3 text-slate">R{Number(li.excl_price).toFixed(2)}</td>
+                    <td className="text-right px-4 py-3 text-slate">{formatCurrency(Number(li.excl_price))}</td>
                     <td className="text-right px-4 py-3 text-slate">{Number(li.disc_pct).toFixed(2)}%</td>
                     <td className="text-right px-4 py-3 text-slate">{Number(li.vat_pct).toFixed(2)}%</td>
-                    <td className="text-right px-4 py-3 text-slate">R{Number(li.excl_total).toFixed(2)}</td>
-                    <td className="text-right px-4 py-3 font-medium text-charcoal">R{Number(li.incl_total).toFixed(2)}</td>
+                    <td className="text-right px-4 py-3 text-slate">{formatCurrency(Number(li.excl_total))}</td>
+                    <td className="text-right px-4 py-3 font-medium text-charcoal">{formatCurrency(Number(li.incl_total))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -426,23 +427,23 @@ export default function InvoiceDetailPage() {
             <div className="max-w-sm ml-auto space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted">Total Discount:</span>
-                <span className="font-medium text-slate">R{Number(invoice.total_discount || 0).toFixed(2)}</span>
+                <span className="font-medium text-slate">{formatCurrency(Number(invoice.total_discount || 0))}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">Total Exclusive:</span>
-                <span className="font-medium text-slate">R{Number(invoice.total_excl || 0).toFixed(2)}</span>
+                <span className="font-medium text-slate">{formatCurrency(Number(invoice.total_excl || 0))}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">Total VAT:</span>
-                <span className="font-medium text-slate">R{Number(invoice.total_vat || 0).toFixed(2)}</span>
+                <span className="font-medium text-slate">{formatCurrency(Number(invoice.total_vat || 0))}</span>
               </div>
               <div className="flex justify-between border-t border-[#D4CFC7] pt-2">
                 <span className="text-muted">Sub Total:</span>
-                <span className="font-medium text-slate">R{Number(invoice.sub_total || 0).toFixed(2)}</span>
+                <span className="font-medium text-slate">{formatCurrency(Number(invoice.sub_total || 0))}</span>
               </div>
               <div className="flex justify-between border-t border-[#D4CFC7] pt-2">
                 <span className="font-medium text-charcoal">Grand Total:</span>
-                <span className="text-lg font-bold text-accent">R{Number(invoice.grand_total || invoice.amount || 0).toFixed(2)}</span>
+                <span className="text-lg font-bold text-accent">{formatCurrency(Number(invoice.grand_total || invoice.amount || 0))}</span>
               </div>
             </div>
           </section>
@@ -531,7 +532,7 @@ export default function InvoiceDetailPage() {
                             <option value="" disabled>Apply saved rate...</option>
                             {rates.map((r) => (
                               <option key={r.id} value={r.id}>
-                                {r.rate_name} - R{r.amount.toFixed(2)} ({r.is_inclusive ? 'incl' : 'excl'})
+                                {r.rate_name} - {formatCurrency(r.amount)} ({r.is_inclusive ? 'incl' : 'excl'})
                               </option>
                             ))}
                           </select>
@@ -565,8 +566,8 @@ export default function InvoiceDetailPage() {
                           className="w-full px-2 py-1.5 text-sm text-right border border-[#D4CFC7] rounded focus:outline-none focus:ring-2 focus:ring-accent text-slate" />
                       </div>
                       <div className="col-span-2 text-right">
-                        <div className="text-sm font-medium text-charcoal py-1.5">R{inclTotal.toFixed(2)}</div>
-                        <div className="text-xs text-muted">Excl: R{exclTotal.toFixed(2)}</div>
+                        <div className="text-sm font-medium text-charcoal py-1.5">{formatCurrency(inclTotal)}</div>
+                        <div className="text-xs text-muted">Excl: {formatCurrency(exclTotal)}</div>
                       </div>
                       <div className="col-span-1 flex justify-end">
                         <button
@@ -591,11 +592,11 @@ export default function InvoiceDetailPage() {
               <h2 className="text-lg font-heading font-semibold text-charcoal">Totals</h2>
             </div>
             <div className="max-w-sm ml-auto space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted">Total Discount:</span><span className="font-medium text-slate">R{totals.totalDiscount}</span></div>
-              <div className="flex justify-between"><span className="text-muted">Total Exclusive:</span><span className="font-medium text-slate">R{totals.totalExcl}</span></div>
-              <div className="flex justify-between"><span className="text-muted">Total VAT:</span><span className="font-medium text-slate">R{totals.totalVat}</span></div>
-              <div className="flex justify-between border-t border-[#D4CFC7] pt-2"><span className="text-muted">Sub Total:</span><span className="font-medium text-slate">R{totals.subTotal}</span></div>
-              <div className="flex justify-between border-t border-[#D4CFC7] pt-2"><span className="font-medium text-charcoal">Grand Total:</span><span className="text-lg font-bold text-accent">R{totals.grandTotal}</span></div>
+              <div className="flex justify-between"><span className="text-muted">Total Discount:</span><span className="font-medium text-slate">{formatCurrency(Number(totals.totalDiscount))}</span></div>
+              <div className="flex justify-between"><span className="text-muted">Total Exclusive:</span><span className="font-medium text-slate">{formatCurrency(Number(totals.totalExcl))}</span></div>
+              <div className="flex justify-between"><span className="text-muted">Total VAT:</span><span className="font-medium text-slate">{formatCurrency(Number(totals.totalVat))}</span></div>
+              <div className="flex justify-between border-t border-[#D4CFC7] pt-2"><span className="text-muted">Sub Total:</span><span className="font-medium text-slate">{formatCurrency(Number(totals.subTotal))}</span></div>
+              <div className="flex justify-between border-t border-[#D4CFC7] pt-2"><span className="font-medium text-charcoal">Grand Total:</span><span className="text-lg font-bold text-accent">{formatCurrency(Number(totals.grandTotal))}</span></div>
             </div>
           </section>
 

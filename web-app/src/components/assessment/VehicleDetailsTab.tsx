@@ -36,6 +36,8 @@ export function VehicleDetailsTab({ assessment, onNavigate }: Props) {
     mileage: v?.mileage?.toString() ?? '',
     mileage_unknown: v?.mileage_unknown ?? false,
     mm_code: v?.mm_code ?? '',
+    identifier_type: v?.identifier_type ?? '',
+    identifier_value: v?.identifier_value ?? v?.mm_code ?? '',
     transmission: v?.transmission ?? '',
     colour: v?.colour ?? '',
     windscreen: v?.windscreen ?? 'intact',
@@ -57,6 +59,7 @@ export function VehicleDetailsTab({ assessment, onNavigate }: Props) {
   const handleSave = async () => {
     await upsertVehicle.mutateAsync({
       ...form,
+      mm_code: form.identifier_value || form.mm_code,
       year_model: form.year_model ? parseInt(form.year_model) : undefined,
       mileage: form.mileage_unknown ? null : (form.mileage ? parseInt(form.mileage) : undefined),
       damage_direction: form.damage_direction as any || undefined,
@@ -86,8 +89,17 @@ export function VehicleDetailsTab({ assessment, onNavigate }: Props) {
           <Field label="Engine Number">
             <Input value={form.engine_number} onChange={(e) => set('engine_number', e.target.value)} />
           </Field>
-          <Field label="MM Code">
-            <Input value={form.mm_code} onChange={(e) => set('mm_code', e.target.value)} placeholder="e.g. 4085" />
+          <Field label="Identifier Type">
+            <Select value={form.identifier_type} onChange={(e) => set('identifier_type', e.target.value)}>
+              <option value="">Select…</option>
+              <option value="mm_code">MM Code</option>
+              <option value="vin_lookup">VIN Lookup</option>
+              <option value="glass_code">Glass Code</option>
+              <option value="other">Other</option>
+            </Select>
+          </Field>
+          <Field label="Identifier Value">
+            <Input value={form.identifier_value} onChange={(e) => set('identifier_value', e.target.value)} placeholder="e.g. 4085" />
           </Field>
           <Field label="Transmission">
             <Select value={form.transmission} onChange={(e) => set('transmission', e.target.value)}>

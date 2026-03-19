@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
 import { getOpenAIClient } from '@/lib/ai/openai'
+import { sanitiseForAI } from '@/lib/ai/sanitiser'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 
@@ -22,13 +23,14 @@ type DocumentType = 'mm_valuation' | 'repair_estimate' | 'parts_quote'
 const VALID_DOC_TYPES = new Set<DocumentType>(['mm_valuation', 'repair_estimate', 'parts_quote'])
 
 const EXTRACTION_PROMPTS: Record<DocumentType, string> = {
-  mm_valuation: `You are a South African motor vehicle valuation data extractor.
+  mm_valuation: `You are a motor vehicle valuation data extractor.
 Extract these fields from the document text:
 - new_price (number, the new vehicle price / on-the-road price)
 - retail_value (number)
 - trade_value (number)
 - market_value (number)
-- mm_code (string, the M&M / TransUnion code)
+- identifier_type (string, the name of the valuation code system, e.g. "MM Code", "Glass's Code", "DAT Code")
+- identifier_value (string, the valuation/identification code)
 - make (string, vehicle manufacturer)
 - model (string, vehicle model name)
 - year (number, model year)
@@ -37,23 +39,23 @@ Extract these fields from the document text:
 Return JSON: { "fields": { ... }, "confidence": { "<field>": number 0-1 } }
 Only include fields you can find. confidence = your certainty for each field.`,
 
-  repair_estimate: `You are a South African motor vehicle repair estimate data extractor.
+  repair_estimate: `You are a motor vehicle repair estimate data extractor.
 Extract these fields from the document text:
 - repairer_name (string)
 - repairer_contact (string, phone number)
 - line_items (array of objects: { description, parts_cost, labour_hours, labour_rate, paint_cost })
-  - costs are numbers (ZAR, exclude VAT if distinguishable)
+  - costs are numbers (exclude VAT if distinguishable)
 - total (number, total excl. VAT if available)
 
 Return JSON: { "fields": { ... }, "confidence": { "<field>": number 0-1 } }
 Only include fields you can find. confidence = your certainty for each field.`,
 
-  parts_quote: `You are a South African motor vehicle parts quotation data extractor.
+  parts_quote: `You are a motor vehicle parts quotation data extractor.
 Extract these fields from the document text:
 - supplier_name (string)
 - supplier_contact (string, phone number)
 - line_items (array of objects: { description, quantity, unit_price, total })
-  - prices are numbers (ZAR)
+  - prices are numbers (in the document's local currency)
 - total_amount (number, total excl. VAT if available)
 
 Return JSON: { "fields": { ... }, "confidence": { "<field>": number 0-1 } }
@@ -155,7 +157,7 @@ export async function POST(request: NextRequest) {
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: rawText.slice(0, 12000) },
+        { role: 'user', content: sanitiseForAI(rawText.slice(0, 12000)) },
       ],
       max_tokens: 2000,
       temperature: 0.1,
@@ -187,7 +189,7 @@ export async function POST(request: NextRequest) {
         })
     }
 
-    // Step 4: POPIA audit log
+    // Step 4: Data protection audit log
     if (orgId && user) {
       await supabase.from('ai_processing_log').insert({
         org_id: orgId,

@@ -13,6 +13,7 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils/formatting'
 
 interface StationeryData {
   logo_url: string | null
@@ -456,7 +457,7 @@ function ReportPreview({
           <div className="h-2 rounded-full w-3/4 mb-1" style={{ backgroundColor: `${pc}30` }}>
             <div className="h-2 rounded-full w-3/5" style={{ backgroundColor: pc }} />
           </div>
-          <p className="text-muted">Repair estimate: R 45,200.00</p>
+          <p className="text-muted">Repair estimate: {formatCurrency(45200) /* Sample preview value */}</p>
         </div>
       </div>
 

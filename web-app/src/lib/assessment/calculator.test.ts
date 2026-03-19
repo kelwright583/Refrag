@@ -241,6 +241,30 @@ describe('applyVat', () => {
     expect(result.totalInclVat).toBe(12000)
   })
 
+  it('applies 0% VAT', () => {
+    const result = applyVat(10000, 0)
+    expect(result.vatAmount).toBe(0)
+    expect(result.totalInclVat).toBe(10000)
+  })
+
+  it('applies 5% VAT (UAE)', () => {
+    const result = applyVat(10000, 5)
+    expect(result.vatAmount).toBe(500)
+    expect(result.totalInclVat).toBe(10500)
+  })
+
+  it('applies 7.7% VAT (Switzerland)', () => {
+    const result = applyVat(10000, 7.7)
+    expect(result.vatAmount).toBe(770)
+    expect(result.totalInclVat).toBe(10770)
+  })
+
+  it('applies 23% VAT (Ireland)', () => {
+    const result = applyVat(10000, 23)
+    expect(result.vatAmount).toBe(2300)
+    expect(result.totalInclVat).toBe(12300)
+  })
+
   it('handles zero amount', () => {
     const result = applyVat(0)
     expect(result.vatAmount).toBe(0)
@@ -361,5 +385,82 @@ describe('computeFullFinancials', () => {
 
     expect(result.settlement_value).toBe(150000)
     expect(result.net_settlement).toBe(150000)
+  })
+
+  it('computes full motor summary: parts + labour + paint + VAT', () => {
+    const result = computeFullFinancials({
+      outcome: 'repairable',
+      lineItems: [
+        makeLineItem({
+          parts_cost: 8000,
+          labour_hours: 5,
+          labour_rate: 400,
+          paint_cost: 1200,
+          paint_materials_cost: 300,
+          strip_assm_cost: 250,
+          frame_cost: 0,
+          misc_cost: 50,
+          qty: 1,
+          is_approved: true,
+        }),
+      ],
+      partsAmountExclVat: 0,
+      partsHandlingFeeExclVat: 0,
+      vatRate: 15,
+      lessExcess: 3000,
+      excessTba: false,
+      vehicleValues: null,
+    })
+
+    // Line item total: 8000 + (5*400) + 1200 + 300 + 250 + 0 + 50 = 11800
+    expect(result.total_excl_vat).toBe(11800)
+    expect(result.vat_amount).toBe(1770)
+    expect(result.total_incl_vat).toBe(13570)
+    expect(result.grand_total).toBe(10570)
+  })
+
+  it('uses non-15% VAT rate end-to-end', () => {
+    const result = computeFullFinancials({
+      outcome: 'repairable',
+      lineItems: [
+        makeLineItem({ parts_cost: 10000, is_approved: true }),
+      ],
+      partsAmountExclVat: 0,
+      partsHandlingFeeExclVat: 0,
+      vatRate: 20,
+      lessExcess: null,
+      excessTba: false,
+      vehicleValues: null,
+    })
+
+    expect(result.total_excl_vat).toBe(10000)
+    expect(result.vat_rate).toBe(20)
+    expect(result.vat_amount).toBe(2000)
+    expect(result.total_incl_vat).toBe(12000)
+    expect(result.grand_total).toBe(12000)
+  })
+
+  it('produces currency-agnostic numeric outputs', () => {
+    const result = computeFullFinancials({
+      outcome: 'repairable',
+      lineItems: [
+        makeLineItem({ parts_cost: 25000, is_approved: true }),
+      ],
+      partsAmountExclVat: 5000,
+      partsHandlingFeeExclVat: 500,
+      vatRate: 15,
+      lessExcess: 1000,
+      excessTba: false,
+      vehicleValues: null,
+    })
+
+    expect(typeof result.total_excl_vat).toBe('number')
+    expect(typeof result.vat_amount).toBe('number')
+    expect(typeof result.grand_total).toBe('number')
+    const json = JSON.stringify(result)
+    expect(json).not.toContain('R')
+    expect(json).not.toContain('$')
+    expect(json).not.toContain('£')
+    expect(json).not.toContain('€')
   })
 })

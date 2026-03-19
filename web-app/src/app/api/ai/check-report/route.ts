@@ -1,6 +1,6 @@
 /**
  * AI: Check report completeness — analyses report text for missing sections
- * Uses OpenAI Chat API with POPIA ring-fencing (PII sanitised before sending)
+ * Uses OpenAI Chat API with data-protection ring-fencing (PII sanitised before sending)
  */
 
 import { NextRequest, NextResponse } from 'next/server'

@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useAuditLogs } from '@/hooks/use-audit'
 import { FileText, Shield, Search } from 'lucide-react'
+import { formatDateTime } from '@/lib/utils/formatting'
 
 export default function AuditPage() {
   const [logType, setLogType] = useState<'admin' | 'data_access'>('admin')
@@ -112,7 +113,7 @@ export default function AuditPage() {
                   )}
                 </div>
                 <div className="text-right text-xs text-slate">
-                  <p>{new Date(log.created_at).toLocaleString('en-ZA')}</p>
+                  <p>{formatDateTime(log.created_at)}</p>
                 </div>
               </div>
             </div>

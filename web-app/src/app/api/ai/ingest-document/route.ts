@@ -4,7 +4,7 @@
  * Flexible document ingestion pipeline:
  *   1. Accept multipart file upload
  *   2. Extract raw text (pdf-parse / mammoth / GPT-4o Vision for images)
- *   3. Extract PII fields locally (never sent to AI) — POPIA compliance
+ *   3. Extract PII fields locally (never sent to AI) — data-protection compliance
  *   4. Sanitise remaining text, send to GPT-4o for classification + field extraction
  *   5. Map AI output to canonical schema fields
  *   6. Re-inject locally-held PII values
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
       result.assessment_document_id = assessmentDocumentId
     }
 
-    // ── Step 8: POPIA audit log ───────────────────────────────────────────
+    // ── Step 8: Data-protection audit log ──────────────────────────────────
     await supabase.from('ai_processing_log').insert({
       org_id: orgId,
       case_id: caseId || null,

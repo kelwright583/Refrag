@@ -1,6 +1,6 @@
 /**
  * AI: Damage severity assessment — assesses damage from an image
- * Uses OpenAI Vision API with POPIA ring-fencing
+ * Uses OpenAI Vision API with data-protection ring-fencing
  */
 
 import { NextRequest, NextResponse } from 'next/server'

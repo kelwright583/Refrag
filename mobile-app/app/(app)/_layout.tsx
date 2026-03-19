@@ -6,12 +6,20 @@ import { Stack, router, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useOrgStore } from '@/store/org';
+import { uploadQueue } from '@/lib/db/upload-queue.db';
+import { setupBackgroundSync } from '@/lib/upload/background-sync';
 
 export default function AppLayout() {
   const session = useAuthStore((state) => state.session);
   const initialized = useAuthStore((state) => state.initialized);
   const selectedOrgId = useOrgStore((state) => state.selectedOrgId);
   const segments = useSegments();
+
+  useEffect(() => {
+    uploadQueue.init().catch(console.error);
+    const teardown = setupBackgroundSync();
+    return teardown;
+  }, []);
 
   useEffect(() => {
     if (!initialized) return;

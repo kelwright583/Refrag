@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Plus, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Case, CaseStatus, CasePriority } from '@/lib/types/case'
 import { CreateCaseModal } from '@/components/CreateCaseModal'
+import { formatDate } from '@/lib/utils/formatting'
 
 const STATUS_OPTIONS: CaseStatus[] = [
   'draft', 'assigned', 'site_visit', 'awaiting_quote', 'reporting', 'submitted', 'additional', 'closed',
@@ -109,11 +110,6 @@ export default function CasesPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric',
-    })
-  }
 
   const TABS: { value: TabValue; label: string; count: number }[] = [
     { value: 'active', label: 'Active', count: (cases || []).filter((c) => c.status !== 'closed').length },

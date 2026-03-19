@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
 import { createReportPackSchema } from '@/lib/validation/report-pack'
+import { checkAndDeductPackCredit } from '@/lib/billing/credit-gate'
+import { trackServerEvent } from '@/lib/events'
 
 /** GET /api/report-packs?caseId=xxx */
 export async function GET(request: NextRequest) {
@@ -37,6 +39,18 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data
 
+    // Billing gate — deduct a pack credit before allowing generation
+    const creditResult = await checkAndDeductPackCredit(orgId, user.id)
+    if (creditResult.status === 'no_credits') {
+      return serverError('No credits remaining. Please purchase more.', 402)
+    }
+    if (creditResult.status === 'subscription_limit') {
+      return serverError('Monthly pack limit reached. Credits required for overage.', 402)
+    }
+    if (creditResult.status === 'not_active') {
+      return serverError('Billing account not active.', 402)
+    }
+
     const { data: pack, error: packError } = await supabase
       .from('report_packs')
       .insert({
@@ -45,6 +59,8 @@ export async function POST(request: NextRequest) {
         org_id: orgId,
         created_by: user.id,
         title: input.title ?? null,
+        payment_status: 'pending',
+        pack_credits_used: 1,
       })
       .select()
       .single()
@@ -93,7 +109,7 @@ export async function POST(request: NextRequest) {
       itemsToInsert.push({
         pack_id: pack.id,
         org_id: orgId,
-        item_type: 'mm_codes',
+        item_type: 'vehicle_valuation',
         assessment_document_id: mmDoc.id,
         evidence_id: null,
         included: true,
@@ -145,6 +161,13 @@ export async function POST(request: NextRequest) {
     if (itemsToInsert.length > 1) {
       await supabase.from('report_pack_items').insert(itemsToInsert)
     }
+
+    trackServerEvent('report_pack_created', {
+      pack_id: pack.id,
+      case_id: input.case_id,
+      assessment_id: input.assessment_id,
+      item_count: itemsToInsert.length,
+    }, { orgId, userId: user.id })
 
     return NextResponse.json(pack, { status: 201 })
   } catch (err: any) {
