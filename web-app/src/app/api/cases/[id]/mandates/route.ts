@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { AssignMandateInput } from '@/lib/types/mandate'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -81,7 +84,13 @@ export async function POST(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const { mandate_id } = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data
+    const { mandate_id } = body
 
     // Assign mandate
     const { error: assignError } = await supabase

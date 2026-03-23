@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, X, Loader2, AlertCircle, Download, Mail, Receipt, RefreshCw } from 'lucide-react'
 import { useCase } from '@/hooks/use-cases'
+import { formatCurrency } from '@/lib/utils/formatting'
 
 interface SectionProps {
   caseId: string
@@ -34,14 +35,14 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-function generateInvoiceNumber(): string {
-  const now = new Date()
-  const seq = String(Math.floor(Math.random() * 9999)).padStart(4, '0')
-  return `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${seq}`
-}
+/**
+ * Invoice number is generated server-side on save (sequential, collision-safe).
+ * This placeholder is shown until the POST /api/invoices response arrives.
+ */
+const PENDING_INVOICE_NUMBER = 'INV-PENDING'
 
 function fmt(n: number) {
-  return `R ${n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatCurrency(n)
 }
 
 const todayStr = new Date().toISOString().slice(0, 10)
@@ -51,7 +52,7 @@ export function InvoiceBuilderSection({ caseId }: SectionProps) {
 
   const [invoice, setInvoice] = useState<InvoiceState>({
     billTo: '',
-    invoiceNumber: generateInvoiceNumber(),
+    invoiceNumber: PENDING_INVOICE_NUMBER,
     invoiceDate: todayStr,
     dueDate: addDays(todayStr, 30),
     lineItems: [{ id: crypto.randomUUID(), description: '', quantity: 1, unitPrice: 0 }],
@@ -177,6 +178,10 @@ export function InvoiceBuilderSection({ caseId }: SectionProps) {
 
       const data = await res.json()
       setSavedInvoiceId(data.id)
+      // Use the server-generated invoice number
+      if (data.reference) {
+        setInvoice(prev => ({ ...prev, invoiceNumber: data.reference }))
+      }
     } catch (err: any) {
       setSaveError(err.message)
     } finally {
@@ -305,6 +310,7 @@ export function InvoiceBuilderSection({ caseId }: SectionProps) {
                 value={li.description}
                 onChange={e => updateLineItem(li.id, { description: e.target.value })}
                 placeholder="Description..."
+                aria-label="Line item description"
                 className="px-2 py-1.5 border border-[#D4CFC7] rounded-lg text-sm text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-copper/40 placeholder:text-slate/40"
               />
               <input
@@ -313,6 +319,7 @@ export function InvoiceBuilderSection({ caseId }: SectionProps) {
                 min="0"
                 value={li.quantity}
                 onChange={e => updateLineItem(li.id, { quantity: parseFloat(e.target.value) || 0 })}
+                aria-label="Line item quantity"
                 className="px-2 py-1.5 border border-[#D4CFC7] rounded-lg text-sm text-right text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-copper/40"
               />
               <input
@@ -321,6 +328,7 @@ export function InvoiceBuilderSection({ caseId }: SectionProps) {
                 min="0"
                 value={li.unitPrice}
                 onChange={e => updateLineItem(li.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                aria-label="Line item unit price"
                 className="px-2 py-1.5 border border-[#D4CFC7] rounded-lg text-sm text-right text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-copper/40"
               />
               <div className="px-2 py-1.5 text-sm text-right text-charcoal font-medium bg-slate-50 border border-[#D4CFC7] rounded-lg">
@@ -329,9 +337,10 @@ export function InvoiceBuilderSection({ caseId }: SectionProps) {
               <button
                 onClick={() => removeLineItem(li.id)}
                 disabled={invoice.lineItems.length === 1}
+                aria-label="Remove line item"
                 className="p-1 text-slate hover:text-red-500 disabled:opacity-30 rounded transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           ))}

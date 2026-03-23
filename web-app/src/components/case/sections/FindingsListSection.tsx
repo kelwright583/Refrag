@@ -269,8 +269,12 @@ export function FindingsListSection({ caseId }: SectionProps) {
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2">
-                  <button onClick={() => toggleExpand(finding.id)} className="text-slate hover:text-charcoal">
-                    {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  <button
+                    onClick={() => toggleExpand(finding.id)}
+                    aria-label={expanded ? 'Collapse finding' : 'Expand finding'}
+                    className="text-slate hover:text-charcoal"
+                  >
+                    {expanded ? <ChevronDown className="w-4 h-4" aria-hidden="true" /> : <ChevronRight className="w-4 h-4" aria-hidden="true" />}
                   </button>
                   <span className="font-mono text-xs font-bold text-copper">{finding.number}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityBadgeClass[finding.severity]}`}>
@@ -283,17 +287,19 @@ export function FindingsListSection({ caseId }: SectionProps) {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleEdit(finding)}
+                    aria-label="Edit finding"
                     className="p-1 text-slate hover:text-copper rounded transition-colors"
                     title="Edit"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => handleDelete(finding.id)}
+                    aria-label="Delete finding"
                     className="p-1 text-slate hover:text-red-500 rounded transition-colors"
                     title="Delete"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>

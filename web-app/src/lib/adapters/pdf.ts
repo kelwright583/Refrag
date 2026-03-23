@@ -25,9 +25,7 @@ const DEFAULT_OPTIONS: Required<PdfOptions> = {
 
 export class SparticuzChromiumAdapter implements PdfGenerationAdapter {
   async generatePdf(html: string, options?: PdfOptions): Promise<Buffer> {
-    // @ts-expect-error — optional peer dep
     const chromium = (await import('@sparticuz/chromium')).default
-    // @ts-expect-error — optional peer dep
     const puppeteer = (await import('puppeteer-core')).default
 
     const opts = { ...DEFAULT_OPTIONS, ...options }
@@ -164,9 +162,7 @@ export class StubPdfAdapter implements PdfGenerationAdapter {
 
 export async function getPdfGenerator(): Promise<PdfGenerationAdapter> {
   try {
-    // @ts-expect-error — optional peer dep
     await import('@sparticuz/chromium')
-    // @ts-expect-error — optional peer dep
     await import('puppeteer-core')
     return new SparticuzChromiumAdapter()
   } catch {

@@ -4,6 +4,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const createRiskItemSchema = z.object({
+  risk_type: z.string().min(1),
+  is_primary: z.boolean().optional(),
+  cover_type: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  asset_data: z.record(z.unknown()).optional(),
+  data: z.record(z.unknown()).optional(),
+})
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser()
@@ -52,11 +62,12 @@ export async function POST(
     const { id: caseId } = await params
     const supabase = await createClient()
     const orgId = await getUserOrgId(supabase)
-    const body = await request.json()
-
-    if (!body.risk_type) {
-      return NextResponse.json({ error: 'Risk type is required' }, { status: 400 })
+    const raw = await request.json()
+    const parseResult = createRiskItemSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
     }
+    const body = parseResult.data
 
     // If this is primary, unset any existing primary
     if (body.is_primary) {

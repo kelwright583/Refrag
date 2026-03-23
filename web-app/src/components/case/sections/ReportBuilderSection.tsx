@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { FileEdit, Plus, Loader2, AlertCircle } from 'lucide-react'
+import { FileEdit, Plus, Loader2, AlertCircle, PenLine, CheckCircle2 } from 'lucide-react'
 import { useCase } from '@/hooks/use-cases'
 import { useReports, useCreateReport } from '@/hooks/use-reports'
 import type { SectionState } from '@/components/report/SectionEditor'
 import dynamic from 'next/dynamic'
+import { SignaturePad } from '@/components/SignaturePad'
 
 const ReportBuilder = dynamic(() => import('@/components/report/ReportBuilder'), {
   loading: () => (
@@ -28,6 +29,11 @@ export function ReportBuilderSection({ caseId, orgSettings }: SectionProps) {
   const [creating, setCreating] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [showSigPad, setShowSigPad] = useState(false)
+  const [savedSignature, setSavedSignature] = useState<string | null>(null)
+  const [signerName, setSignerName] = useState('')
+  const [signerDesignation, setSignerDesignation] = useState('')
+  const [sigSaving, setSigSaving] = useState(false)
 
   const report = reports?.[0] ?? null
 
@@ -85,6 +91,38 @@ export function ReportBuilderSection({ caseId, orgSettings }: SectionProps) {
       setSaveError(err.message)
     }
   }, [report])
+
+  const handleSignatureSave = async (dataUrl: string) => {
+    if (!report) return
+    setSigSaving(true)
+    try {
+      const res = await fetch(dataUrl)
+      const blob = await res.blob()
+      const file = new File([blob], `sig_${report.id}.png`, { type: 'image/png' })
+
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('report_id', report.id)
+
+      const uploadRes = await fetch('/api/reports/signature', {
+        method: 'POST',
+        body: fd,
+      })
+
+      if (uploadRes.ok) {
+        const { signedUrl } = await uploadRes.json()
+        setSavedSignature(signedUrl ?? dataUrl)
+      } else {
+        setSavedSignature(dataUrl)
+      }
+      setShowSigPad(false)
+    } catch {
+      setSavedSignature(dataUrl)
+      setShowSigPad(false)
+    } finally {
+      setSigSaving(false)
+    }
+  }
 
   if (caseLoading || reportsLoading) {
     return (
@@ -172,6 +210,96 @@ export function ReportBuilderSection({ caseId, orgSettings }: SectionProps) {
         initialSections={initialSections}
         onSave={handleSave}
       />
+
+      {/* ── Assessor Declaration & Signature ─────────────────────────── */}
+      <div className="mt-4 border border-[#D4CFC7] rounded-xl p-4 space-y-4 bg-[#FAFAF8]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <PenLine className="w-4 h-4 text-copper" aria-hidden="true" />
+            <span className="text-sm font-semibold text-charcoal">Assessor Declaration & Signature</span>
+          </div>
+          {savedSignature && (
+            <div className="flex items-center gap-1 text-xs text-green-600 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+              Signed
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="signer-name" className="block text-xs text-muted mb-1">Full name</label>
+            <input
+              id="signer-name"
+              type="text"
+              value={signerName}
+              onChange={(e) => setSignerName(e.target.value)}
+              placeholder="Your full name"
+              className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg text-sm text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-copper/40"
+            />
+          </div>
+          <div>
+            <label htmlFor="signer-designation" className="block text-xs text-muted mb-1">Designation / qualifications</label>
+            <input
+              id="signer-designation"
+              type="text"
+              value={signerDesignation}
+              onChange={(e) => setSignerDesignation(e.target.value)}
+              placeholder="e.g. MIASA, AIIA"
+              className="w-full px-3 py-2 border border-[#D4CFC7] rounded-lg text-sm text-charcoal bg-white focus:outline-none focus:ring-2 focus:ring-copper/40"
+            />
+          </div>
+        </div>
+
+        {savedSignature ? (
+          <div className="space-y-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={savedSignature}
+              alt="Assessor signature"
+              className="h-20 border border-[#D4CFC7] rounded-lg bg-white p-2 object-contain"
+            />
+            <button
+              onClick={() => { setSavedSignature(null); setShowSigPad(true) }}
+              aria-label="Re-sign the declaration"
+              className="text-xs text-copper underline"
+            >
+              Re-sign
+            </button>
+          </div>
+        ) : showSigPad ? (
+          <div className="space-y-2">
+            <SignaturePad
+              label="Sign in the box below"
+              onSave={handleSignatureSave}
+              onClear={() => {}}
+              width={480}
+              height={160}
+            />
+            {sigSaving && <p className="text-xs text-muted">Saving signature…</p>}
+            <button
+              onClick={() => setShowSigPad(false)}
+              aria-label="Cancel signing"
+              className="text-xs text-muted underline"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowSigPad(true)}
+            aria-label="Open signature pad to sign the declaration"
+            className="flex items-center gap-2 px-4 py-2.5 border border-[#D4CFC7] rounded-lg text-sm text-charcoal bg-white hover:border-copper transition-colors"
+          >
+            <PenLine className="w-4 h-4 text-copper" aria-hidden="true" />
+            Sign declaration
+          </button>
+        )}
+
+        <p className="text-xs text-muted">
+          Date: {new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+      </div>
     </div>
   )
 }

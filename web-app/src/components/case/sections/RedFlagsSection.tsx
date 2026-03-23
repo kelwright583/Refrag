@@ -234,11 +234,11 @@ export function RedFlagsSection({ caseId }: SectionProps) {
                 <p className="text-sm text-charcoal">{flag.description}</p>
               </div>
               <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                <button onClick={() => handleEdit(flag)} className="p-1 text-slate hover:text-copper rounded">
-                  <Edit2 className="w-3.5 h-3.5" />
+                <button onClick={() => handleEdit(flag)} aria-label="Edit red flag" className="p-1 text-slate hover:text-copper rounded">
+                  <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
-                <button onClick={() => handleDelete(flag.id)} className="p-1 text-slate hover:text-red-500 rounded">
-                  <X className="w-3.5 h-3.5" />
+                <button onClick={() => handleDelete(flag.id)} aria-label="Delete red flag" className="p-1 text-slate hover:text-red-500 rounded">
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>
             </div>

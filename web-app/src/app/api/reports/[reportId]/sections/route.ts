@@ -9,6 +9,23 @@ import {
   UpdateReportSectionInput,
   ReorderSectionsInput,
 } from '@/lib/types/report'
+import { z } from 'zod'
+
+const createSectionSchema = z.object({
+  section_key: z.string().min(1),
+  heading: z.string().min(1),
+  body_md: z.string(),
+  order_index: z.number().int().min(0),
+})
+const upsertSectionsSchema = z.object({
+  sections: z.array(z.object({
+    id: z.string().uuid().optional(),
+    section_key: z.string().min(1),
+    heading: z.string().min(1),
+    body_md: z.string(),
+    order_index: z.number().int().min(0),
+  })),
+})
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -51,7 +68,12 @@ export async function POST(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const body: CreateReportSectionInput = await request.json()
+    const raw = await request.json()
+    const parseResult = createSectionSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data
 
     // Verify report belongs to org
     const { data: report, error: reportError } = await supabase
@@ -117,7 +139,12 @@ export async function PATCH(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const body: ReorderSectionsInput = await request.json()
+    const raw = await request.json()
+    const patchParseResult = upsertSectionsSchema.safeParse(raw)
+    if (!patchParseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: patchParseResult.error.flatten() }, { status: 400 })
+    }
+    const body: ReorderSectionsInput = raw as ReorderSectionsInput
 
     // Verify report belongs to org
     const { data: report, error: reportError } = await supabase

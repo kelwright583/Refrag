@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 export async function GET(
   _request: NextRequest,
@@ -33,7 +36,12 @@ export async function POST(
     const { supabase, orgId, error } = await getAuthContext()
     if (error) return error
 
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data as any
     const { name, rate_type, amount, currency_code, unit_label, applies_to, notes } = body
 
     if (!name || !rate_type || amount == null) {

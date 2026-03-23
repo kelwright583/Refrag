@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendEmail, markdownToHtml } from '@/lib/email/resend'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 async function getUserOrgId(supabase: any): Promise<{ orgId: string; userId: string }> {
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,9 +26,14 @@ export async function POST(
     const { id: caseId } = await params
     const supabase = await createClient()
     const { orgId, userId } = await getUserOrgId(supabase)
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data
 
-    const { recipients, recipient_types, subject, body: bodyMd } = body
+    const { recipients, recipient_types, subject, body: bodyMd } = body as any
 
     if (!recipients || !recipients.length) {
       return NextResponse.json({ error: 'No recipients provided' }, { status: 400 })

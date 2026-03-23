@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
 import { sendEmail, markdownToHtml } from '@/lib/email/resend'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 import {
   EMAIL_TEMPLATES,
   resolveTemplatePlaceholders,
@@ -19,7 +22,12 @@ export async function POST(request: NextRequest) {
     const { supabase, user, orgId, error } = await getAuthContext()
     if (error || !user) return error!
 
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data
     const {
       to,
       subject,

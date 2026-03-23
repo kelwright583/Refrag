@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { z } from 'zod'
+
+const requirementSchema = z.object({
+  key: z.string().min(1).optional(),
+  label: z.string().min(1),
+  description: z.string().optional().nullable(),
+  required: z.boolean().optional(),
+  evidence_type: z.enum(['photo','video','document','text_note','none']).optional(),
+  order_index: z.number().int().min(0).optional(),
+})
 
 export async function GET(
   _request: NextRequest,
@@ -33,12 +43,14 @@ export async function POST(
     const { supabase, orgId, error } = await getAuthContext()
     if (error) return error
 
-    const body = await request.json()
-    const { label, requirement_key, category, is_required, evidence_type, guidance_note, order_index } = body
-
-    if (!label) {
-      return serverError('label is required', 400)
+    const raw = await request.json()
+    const parseResult = requirementSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
     }
+    const body = parseResult.data
+    const { label, key: requirement_key, description: category, required: is_required, evidence_type, order_index } = body
+    const guidance_note = (raw as any).guidance_note
 
     const key = requirement_key || label.toLowerCase().replace(/[^a-z0-9]+/g, '_')
 
@@ -76,12 +88,13 @@ export async function PUT(
     const { supabase, orgId, error } = await getAuthContext()
     if (error) return error
 
-    const body = await request.json()
-    const { requirements } = body
-
-    if (!Array.isArray(requirements)) {
-      return serverError('requirements array is required', 400)
+    const raw = await request.json()
+    const putParseResult = requirementSchema.partial().passthrough().array().safeParse((raw as any).requirements)
+    if (!Array.isArray((raw as any).requirements)) {
+      return NextResponse.json({ error: 'Invalid request body', details: { fieldErrors: { requirements: ['Must be an array'] }, formErrors: [] } }, { status: 400 })
     }
+    const body = raw as any
+    const { requirements } = body
 
     const results = []
     for (const req of requirements) {

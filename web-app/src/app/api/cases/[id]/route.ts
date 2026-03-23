@@ -6,6 +6,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UpdateCaseInput, CaseStatus, CasePriority } from '@/lib/types/case'
 import { trackServerEvent } from '@/lib/events'
+import { z } from 'zod'
+
+const updateCaseSchema = z.object({
+  client_name: z.string().min(1).optional(),
+  insurer_name: z.string().optional().nullable(),
+  broker_name: z.string().optional().nullable(),
+  claim_reference: z.string().optional().nullable(),
+  loss_date: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  status: z.enum(['draft','assigned','site_visit','awaiting_quote','reporting','submitted','additional','closed']).optional(),
+  priority: z.enum(['low','normal','high']).optional(),
+  vertical: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+}).strict()
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -74,7 +88,12 @@ export async function PATCH(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const updates: UpdateCaseInput = await request.json()
+    const raw = await request.json()
+    const parseResult = updateCaseSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const updates = parseResult.data
 
     const { data, error } = await supabase
       .from('cases')

@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { z } from 'zod'
+
+const createMandateSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional().nullable(),
+  client_id: z.string().uuid().optional().nullable(),
+  vertical: z.string().optional().nullable(),
+  is_default: z.boolean().optional(),
+  clone_from_id: z.string().uuid().optional().nullable(),
+})
 
 export async function GET() {
   try {
@@ -47,12 +57,13 @@ export async function POST(request: NextRequest) {
     const { supabase, orgId, error } = await getAuthContext()
     if (error) return error
 
-    const body = await request.json()
-    const { name, description, client_id, vertical, is_default, clone_from_id } = body
-
-    if (!name) {
-      return serverError('name is required', 400)
+    const raw = await request.json()
+    const parseResult = createMandateSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
     }
+    const body = parseResult.data
+    const { name, description, client_id, vertical, is_default, clone_from_id } = body
 
     const { data, error: dbErr } = await supabase
       .from('mandates')

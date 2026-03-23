@@ -5,6 +5,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CreateClientInput } from '@/lib/types/client'
+import { z } from 'zod'
+
+const createClientSchema = z.object({
+  name: z.string().min(1),
+  contact_name: z.string().optional().nullable(),
+  contact_email: z.string().email().optional().nullable(),
+  contact_phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  vat_number: z.string().optional().nullable(),
+})
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser()
@@ -43,11 +53,12 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const orgId = await getUserOrgId(supabase)
-    const body: CreateClientInput = await request.json()
-
-    if (!body.name?.trim()) {
-      return NextResponse.json({ error: 'Client name is required' }, { status: 400 })
+    const raw = await request.json()
+    const parseResult = createClientSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
     }
+    const body = parseResult.data
 
     const { data, error } = await supabase
       .from('clients')

@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { z } from 'zod'
+
+const updateOrgProfileSchema = z.object({
+  name: z.string().min(1).optional(),
+  legal_name: z.string().optional().nullable(),
+  registration_number: z.string().optional().nullable(),
+  vat_number: z.string().optional().nullable(),
+  contact_email: z.string().email().optional().nullable(),
+  contact_phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+})
 
 const ALLOWED_FIELDS = [
   'name',
@@ -38,7 +49,12 @@ export async function PATCH(request: NextRequest) {
     const { supabase, user, orgId, error } = await getAuthContext()
     if (error || !user) return error
 
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = updateOrgProfileSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data
     const update: Record<string, any> = {}
 
     for (const key of ALLOWED_FIELDS) {

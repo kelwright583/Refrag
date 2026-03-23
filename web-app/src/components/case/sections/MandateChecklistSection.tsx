@@ -100,8 +100,8 @@ function EvidencePickerModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#D4CFC7]">
           <h3 className="font-semibold text-charcoal">Attach Evidence</h3>
-          <button onClick={onClose} className="text-slate hover:text-charcoal">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} aria-label="Close" className="text-slate hover:text-charcoal">
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
         <div className="px-5 py-3 border-b border-[#D4CFC7]">
@@ -113,6 +113,7 @@ function EvidencePickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search evidence..."
+              aria-label="Search evidence"
               className="w-full pl-9 pr-3 py-2 text-sm border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-copper/30 focus:border-copper"
             />
           </div>
@@ -293,10 +294,11 @@ export function MandateChecklistSection({ caseId }: SectionProps) {
                         {/* Status toggle */}
                         <button
                           onClick={() => cycleStatus(check)}
+                          aria-label={`Status: ${STATUS_CONFIG[status].label} — click to cycle`}
                           title={`Status: ${STATUS_CONFIG[status].label} — click to cycle`}
                           className={`mt-0.5 flex-shrink-0 ${STATUS_CONFIG[status].className} hover:opacity-70 transition-opacity`}
                         >
-                          <StatusIcon className="w-5 h-5" />
+                          <StatusIcon className="w-5 h-5" aria-hidden="true" />
                         </button>
 
                         <div className="flex-1 min-w-0">
@@ -317,9 +319,10 @@ export function MandateChecklistSection({ caseId }: SectionProps) {
                             </div>
                             <button
                               onClick={() => setExpandedId(isExpanded ? null : check.id)}
+                              aria-label={isExpanded ? 'Collapse requirement' : 'Expand requirement'}
                               className="text-slate hover:text-charcoal flex-shrink-0"
                             >
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              {isExpanded ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
                             </button>
                           </div>
 
@@ -355,10 +358,11 @@ export function MandateChecklistSection({ caseId }: SectionProps) {
                                   </span>
                                   <button
                                     onClick={() => detachEvidence(check)}
+                                    aria-label="Detach evidence"
                                     className="text-slate hover:text-red-500 transition-colors"
                                     title="Detach evidence"
                                   >
-                                    <X className="w-3.5 h-3.5" />
+                                    <X className="w-3.5 h-3.5" aria-hidden="true" />
                                   </button>
                                 </div>
                               ) : (
@@ -413,8 +417,8 @@ export function MandateChecklistSection({ caseId }: SectionProps) {
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#D4CFC7]">
               <h3 className="font-semibold text-charcoal">Assign Mandate</h3>
-              <button onClick={() => setShowAssignModal(false)} className="text-slate hover:text-charcoal">
-                <X className="w-4 h-4" />
+              <button onClick={() => setShowAssignModal(false)} aria-label="Close" className="text-slate hover:text-charcoal">
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
             <div className="px-5 py-3 border-b border-[#D4CFC7]">
@@ -426,6 +430,7 @@ export function MandateChecklistSection({ caseId }: SectionProps) {
                   value={mandateSearch}
                   onChange={(e) => setMandateSearch(e.target.value)}
                   placeholder="Search mandates..."
+                  aria-label="Search mandates"
                   className="w-full pl-9 pr-3 py-2 text-sm border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-copper/30 focus:border-copper"
                 />
               </div>

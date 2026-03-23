@@ -5,6 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const updateStatusSchema = z.object({
+  status: z.enum(['draft','assigned','site_visit','awaiting_quote','reporting','submitted','additional','closed']),
+})
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -48,7 +53,12 @@ export async function PATCH(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const { status } = await request.json()
+    const raw = await request.json()
+    const parseResult = updateStatusSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const { status } = parseResult.data
 
     // Get current case status before update
     const { data: currentCase } = await supabase

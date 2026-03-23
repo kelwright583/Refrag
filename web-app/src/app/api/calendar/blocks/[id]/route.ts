@@ -4,6 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 async function getAuth(supabase: any) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,7 +25,12 @@ export async function PATCH(
     const { id } = await params
     const supabase = await createClient()
     const { orgId, userId } = await getAuth(supabase)
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data as any
 
     const updates: Record<string, unknown> = {}
     if (body.block_type) updates.block_type = body.block_type

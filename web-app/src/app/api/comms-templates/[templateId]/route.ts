@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UpdateCommsTemplateInput } from '@/lib/types/comms'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -73,7 +76,12 @@ export async function PATCH(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const updates: UpdateCommsTemplateInput = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const updates = parseResult.data as UpdateCommsTemplateInput
 
     const updateData: any = {}
     if (updates.name !== undefined) updateData.name = updates.name

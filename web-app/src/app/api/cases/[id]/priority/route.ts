@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CasePriority } from '@/lib/types/case'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -47,7 +50,13 @@ export async function PATCH(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const { priority } = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data as any
+    const { priority } = body
 
     const { data, error } = await supabase
       .from('cases')

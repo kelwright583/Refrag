@@ -89,25 +89,28 @@ function EvidenceCard({
         {isImage && (
           <button
             onClick={onView}
+            aria-label="View evidence"
             title="View"
             className="p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
           >
-            <Eye className="w-4 h-4" />
+            <Eye className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
         <button
           onClick={onTag}
+          aria-label="Tag evidence"
           title="Tag"
           className="p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
         >
-          <Tag className="w-4 h-4" />
+          <Tag className="w-4 h-4" aria-hidden="true" />
         </button>
         <button
           onClick={onDelete}
+          aria-label="Delete evidence"
           title="Delete"
           className="p-1.5 bg-red-500/70 hover:bg-red-500/90 rounded-full text-white transition-colors"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -329,9 +332,10 @@ export function EvidenceGridSection({ caseId }: SectionProps) {
           </div>
           <button
             onClick={() => setUploadingFiles((prev) => prev.filter((x) => x.id !== u.id))}
+            aria-label="Dismiss upload error"
             className="text-red-400 hover:text-red-600"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       ))}
@@ -455,24 +459,27 @@ export function EvidenceGridSection({ caseId }: SectionProps) {
             onClick={(e) => e.stopPropagation()}
           />
           <button
+            aria-label="Close"
             className="absolute top-4 right-4 text-white text-3xl leading-none hover:opacity-70 transition-opacity"
             onClick={closeLightbox}
           >
-            <X className="w-6 h-6" />
+            <X className="w-6 h-6" aria-hidden="true" />
           </button>
           {photoItems.length > 1 && (
             <>
               <button
+                aria-label="Previous image"
                 className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
                 onClick={(e) => { e.stopPropagation(); prevLightbox() }}
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="w-6 h-6" aria-hidden="true" />
               </button>
               <button
+                aria-label="Next image"
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
                 onClick={(e) => { e.stopPropagation(); nextLightbox() }}
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="w-6 h-6" aria-hidden="true" />
               </button>
             </>
           )}
@@ -491,8 +498,8 @@ export function EvidenceGridSection({ caseId }: SectionProps) {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-charcoal">Tag Evidence</h3>
-              <button onClick={() => setTagModal(null)} className="text-slate hover:text-charcoal">
-                <X className="w-4 h-4" />
+              <button onClick={() => setTagModal(null)} aria-label="Close" className="text-slate hover:text-charcoal">
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
             <p className="text-xs text-slate mb-2">Suggested tags:</p>
@@ -524,6 +531,7 @@ export function EvidenceGridSection({ caseId }: SectionProps) {
                   }
                 }}
                 placeholder="Type a tag..."
+                aria-label="Custom tag"
                 className="flex-1 px-3 py-2 text-sm border border-[#D4CFC7] rounded-lg focus:outline-none focus:ring-2 focus:ring-copper/30 focus:border-copper"
               />
               <button
@@ -533,9 +541,10 @@ export function EvidenceGridSection({ caseId }: SectionProps) {
                     setTagModal({ ...tagModal, customTag: '' })
                   }
                 }}
+                aria-label="Add custom tag"
                 className="px-3 py-2 bg-[#FAFAF8] border border-[#D4CFC7] rounded-lg text-sm text-slate hover:border-copper transition-colors"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
             {tagModal.evidence.tags.length > 0 && (
@@ -546,8 +555,8 @@ export function EvidenceGridSection({ caseId }: SectionProps) {
                     className="flex items-center gap-1 px-2 py-0.5 bg-copper/10 text-copper rounded text-xs"
                   >
                     {t}
-                    <button onClick={() => toggleSuggestedTag(t)}>
-                      <X className="w-3 h-3" />
+                    <button onClick={() => toggleSuggestedTag(t)} aria-label={`Remove tag ${t}`}>
+                      <X className="w-3 h-3" aria-hidden="true" />
                     </button>
                   </span>
                 ))}

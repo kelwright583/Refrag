@@ -136,11 +136,11 @@ function ContactCard({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button onClick={onEdit} className="p-1 text-slate hover:text-copper transition-colors" title="Edit">
-            <Pencil className="w-3.5 h-3.5" />
+          <button onClick={onEdit} aria-label="Edit contact" className="p-1 text-slate hover:text-copper transition-colors" title="Edit">
+            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
-          <button onClick={onDelete} className="p-1 text-slate hover:text-red-500 transition-colors" title="Remove">
-            <Trash2 className="w-3.5 h-3.5" />
+          <button onClick={onDelete} aria-label="Remove contact" className="p-1 text-slate hover:text-red-500 transition-colors" title="Remove">
+            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>

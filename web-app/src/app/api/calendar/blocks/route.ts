@@ -4,6 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const bodySchema = z.object({}).passthrough()
 
 async function getAuth(supabase: any) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -41,7 +44,12 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { orgId, userId } = await getAuth(supabase)
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = bodySchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data as any
 
     if (!body.starts_at || !body.ends_at) {
       return NextResponse.json({ error: 'starts_at and ends_at are required' }, { status: 400 })

@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const trackEventSchema = z.object({
+  event_name: z.string().min(1).max(100),
+  event_props: z.record(z.unknown()).optional(),
+  vertical: z.string().optional(),
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,11 +17,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { event_name, event_props, vertical } = await request.json()
-
-    if (!event_name || typeof event_name !== 'string') {
-      return NextResponse.json({ error: 'event_name is required' }, { status: 400 })
+    const raw = await request.json()
+    const parseResult = trackEventSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
     }
+    const { event_name, event_props, vertical } = parseResult.data
 
     const { data: orgMember } = await supabase
       .from('org_members')

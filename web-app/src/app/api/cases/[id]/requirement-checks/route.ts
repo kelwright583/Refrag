@@ -5,6 +5,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UpdateRequirementCheckInput } from '@/lib/types/mandate'
+import { z } from 'zod'
+
+const updateCheckSchema = z.object({
+  requirement_check_id: z.string().uuid(),
+  status: z.enum(['missing','provided','not_applicable']),
+  evidence_id: z.string().uuid().optional().nullable(),
+  note: z.string().optional().nullable(),
+})
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -89,7 +97,12 @@ export async function PATCH(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const updates: UpdateRequirementCheckInput = await request.json()
+    const raw = await request.json()
+    const parseResult = updateCheckSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const updates = parseResult.data
 
     const updateData: any = {}
     if (updates.status !== undefined) updateData.status = updates.status

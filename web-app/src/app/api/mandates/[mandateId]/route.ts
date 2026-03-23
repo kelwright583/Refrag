@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { z } from 'zod'
+
+const updateMandateSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  client_id: z.string().uuid().optional().nullable(),
+  vertical: z.string().optional().nullable(),
+  is_default: z.boolean().optional(),
+})
 
 export async function GET(
   _request: NextRequest,
@@ -52,7 +61,12 @@ export async function PUT(
     const { supabase, orgId, error } = await getAuthContext()
     if (error) return error
 
-    const body = await request.json()
+    const raw = await request.json()
+    const parseResult = updateMandateSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const body = parseResult.data
     const updateData: Record<string, unknown> = {}
 
     if (body.name !== undefined) updateData.name = body.name
@@ -60,7 +74,6 @@ export async function PUT(
     if (body.client_id !== undefined) updateData.client_id = body.client_id || null
     if (body.vertical !== undefined) updateData.vertical = body.vertical
     if (body.is_default !== undefined) updateData.is_default = body.is_default
-    if (body.is_active !== undefined) updateData.is_active = body.is_active
 
     const { data, error: dbErr } = await supabase
       .from('mandates')

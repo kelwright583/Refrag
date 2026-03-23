@@ -17,7 +17,9 @@ import {
 } from 'lucide-react'
 import { useCase, useUpdateCaseStatus } from '@/hooks/use-cases'
 import { useCaseContacts } from '@/hooks/use-contacts'
-import { useEvidence, useUploadEvidence } from '@/hooks/use-evidence'
+import { useEvidence } from '@/hooks/use-evidence'
+import { useFieldUploadQueue } from '@/hooks/use-field-upload-queue'
+import { startQueueProcessor } from '@/lib/upload/field-queue-processor'
 import { useCaseMandates, useRequirementChecks } from '@/hooks/use-mandates'
 import { getCacheEntry, setCacheEntry } from '@/lib/cache/offline-case-cache'
 import type { CaseStatus } from '@/lib/types/case'
@@ -127,7 +129,13 @@ export default function FieldCaseDetailPage({ params }: { params: Promise<{ id: 
   const { data: requirementChecks = [], isError: checksError } = useRequirementChecks(id)
 
   const updateStatus = useUpdateCaseStatus()
-  const uploadEvidence = useUploadEvidence()
+
+  const { enqueue, stats: queueStats } = useFieldUploadQueue()
+
+  // Start the queue processor once
+  useEffect(() => {
+    return startQueueProcessor()
+  }, [])
 
   // ── Store successful data to offline cache ─────────────────────────────────
 
@@ -203,23 +211,32 @@ export default function FieldCaseDetailPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
-    for (const file of files) {
+  const handleEvidenceUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const capturedAt = new Date().toISOString()
+
+    for (const file of Array.from(files)) {
       const mediaType = file.type.startsWith('image/')
         ? 'photo'
         : file.type.startsWith('video/')
           ? 'video'
           : 'document'
-      await uploadEvidence.mutateAsync({
-        caseId: id,
-        file,
+
+      await enqueue({
+        localFileUri: URL.createObjectURL(file),
+        fileName: file.name,
+        fileSize: file.size,
+        contentType: file.type,
         mediaType,
-        options: { capturedAt: new Date().toISOString() },
+        caseId: id,
+        orgId: '',       // resolved server-side from session
+        tags: [],
+        notes: '',
+        capturedAt,
+        locationLat: undefined,
+        locationLng: undefined,
       })
     }
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   if (caseLoading && !cachedData) {
@@ -408,6 +425,19 @@ export default function FieldCaseDetailPage({ params }: { params: Promise<{ id: 
         {/* ── EVIDENCE ──────────────────────────────────────── */}
         {activeTab === 'evidence' && (
           <div className="px-4 py-4">
+            {(queueStats.pending > 0 || queueStats.uploading > 0 || queueStats.failed > 0) && (
+              <div role="status" className={`mx-4 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                queueStats.failed > 0
+                  ? 'bg-red-50 border border-red-200 text-red-700'
+                  : 'bg-blue-50 border border-blue-200 text-blue-700'
+              }`}>
+                {queueStats.failed > 0
+                  ? `${queueStats.failed} upload${queueStats.failed > 1 ? 's' : ''} failed — will retry when online`
+                  : `${queueStats.pending + queueStats.uploading} file${(queueStats.pending + queueStats.uploading) > 1 ? 's' : ''} uploading…`
+                }
+              </div>
+            )}
+
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -416,7 +446,7 @@ export default function FieldCaseDetailPage({ params }: { params: Promise<{ id: 
               capture="environment"
               multiple
               className="hidden"
-              onChange={handleFileChange}
+              onChange={(e) => handleEvidenceUpload(e.target.files)}
               aria-label="Upload evidence files"
             />
 

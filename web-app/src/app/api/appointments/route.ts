@@ -3,6 +3,15 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const createAppointmentSchema = z.object({
+  case_id: z.string().uuid(),
+  scheduled_at: z.string().datetime(),
+  address: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  assigned_to: z.string().uuid().optional().nullable(),
+})
 
 async function getUserOrgId(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -45,9 +54,12 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const orgId = await getUserOrgId(supabase)
-    const body = await request.json()
-    const { case_id, scheduled_at, address, notes, assigned_to } = body
-    if (!case_id || !scheduled_at) return NextResponse.json({ error: 'case_id and scheduled_at required' }, { status: 400 })
+    const raw = await request.json()
+    const parseResult = createAppointmentSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
+    }
+    const { case_id, scheduled_at, address, notes, assigned_to } = parseResult.data
 
     const { data, error } = await supabase
       .from('appointments')

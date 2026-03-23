@@ -2,20 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, serverError } from '@/lib/api/server-utils'
 import { getPaymentAdapter } from '@/lib/adapters/payment'
 import { getCreditBundles, getSubscriptionTiers } from '@/lib/billing/plans'
+import { z } from 'zod'
+
+const checkoutSchema = z.object({
+  mode: z.enum(['credits', 'subscription']),
+  priceId: z.string().min(1),
+  quantity: z.number().int().min(1).optional(),
+})
 
 export async function POST(req: NextRequest) {
   try {
     const { user, orgId, error } = await getAuthContext()
     if (error || !user) return error ?? serverError('Unauthorized', 401)
 
-    const body = await req.json()
-    const mode: string = body.mode
-    const priceId: string = body.priceId
-    const quantity: number | undefined = body.quantity
-
-    if (!mode || !priceId) {
-      return serverError('mode and priceId are required', 400)
+    const raw = await req.json()
+    const parseResult = checkoutSchema.safeParse(raw)
+    if (!parseResult.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parseResult.error.flatten() }, { status: 400 })
     }
+    const { mode, priceId, quantity } = parseResult.data
 
     if (mode === 'credits') {
       const bundle = getCreditBundles().find((b) => b.stripePriceId === priceId)

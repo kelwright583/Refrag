@@ -199,21 +199,23 @@ export function DocumentLogSection({ caseId }: SectionProps) {
                   <button
                     onClick={() => handleDownload(doc)}
                     disabled={downloading === doc.id}
+                    aria-label="Download document"
                     title="Download"
                     className="p-1.5 text-slate hover:text-copper transition-colors disabled:opacity-50"
                   >
                     {downloading === doc.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4" aria-hidden="true" />
                     )}
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(doc.id)}
+                    aria-label="Remove document"
                     title="Remove"
                     className="p-1.5 text-slate hover:text-red-500 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>

@@ -331,11 +331,11 @@ export function InvestigationTimelineSection({ caseId }: SectionProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                      <button onClick={() => handleEdit(entry)} className="p-1 text-slate hover:text-copper rounded">
-                        <Edit2 className="w-3.5 h-3.5" />
+                      <button onClick={() => handleEdit(entry)} aria-label="Edit timeline entry" className="p-1 text-slate hover:text-copper rounded">
+                        <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
-                      <button onClick={() => handleDelete(entry.id)} className="p-1 text-slate hover:text-red-500 rounded">
-                        <X className="w-3.5 h-3.5" />
+                      <button onClick={() => handleDelete(entry.id)} aria-label="Delete timeline entry" className="p-1 text-slate hover:text-red-500 rounded">
+                        <X className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
