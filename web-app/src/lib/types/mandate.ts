@@ -99,6 +99,21 @@ export const EVIDENCE_TYPES: { value: EvidenceType; label: string }[] = [
 
 export type RequirementStatus = 'missing' | 'provided' | 'not_applicable'
 
+export interface CaseRequirementCheck {
+  id: string
+  org_id: string
+  case_id: string
+  mandate_id: string
+  requirement_id: string
+  status: RequirementStatus
+  evidence_id: string | null
+  evidence: { id: string; file_name: string; media_type: string } | null
+  note: string | null
+  created_at: string
+  updated_at: string
+  requirement: MandateRequirement
+}
+
 export interface AssignMandateInput {
   mandate_id: string
   case_id: string

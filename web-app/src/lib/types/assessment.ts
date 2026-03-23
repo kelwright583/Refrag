@@ -138,6 +138,8 @@ export interface VehicleDetails {
   reg_number: string | null
   vin_number: string | null
   engine_number: string | null
+  identifier_type: string | null
+  identifier_value: string | null
   mileage: number | null
   mileage_unknown: boolean
   mm_code: string | null

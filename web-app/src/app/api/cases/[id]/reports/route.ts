@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { CreateReportInput, UpdateReportInput } from '@/lib/types/report'
+import { createReportSchema } from '@/lib/validation/report'
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -73,7 +73,15 @@ export async function POST(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const body: CreateReportInput = await request.json()
+    const rawBody = await request.json()
+    const parsed = createReportSchema.safeParse({ ...rawBody, case_id: rawBody.case_id ?? params.id })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+    const body = parsed.data
 
     // Get the latest version for this case
     const { data: latestReport, error: latestError } = await supabase

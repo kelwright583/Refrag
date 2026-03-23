@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         .insert({ assessment_id: assessmentId, org_id: orgId })
         .select()
         .single()
-      if (raError) throw raError
+      if (raError || !newRA) throw raError ?? new Error('Failed to create repair assessment')
       repairAssessment = newRA
     }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         ...parsed.data,
         order_index: orderIndex,
         assessment_id: assessmentId,
-        repair_assessment_id: repairAssessment.id,
+        repair_assessment_id: repairAssessment!.id,
         org_id: orgId,
       })
       .select()

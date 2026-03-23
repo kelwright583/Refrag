@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { trackServerEvent } from '@/lib/events'
+
+const lineItemSchema = z.object({
+  description: z.string().optional(),
+  detail_lines: z.array(z.unknown()).optional(),
+  quantity: z.number().optional(),
+  excl_price: z.number().optional(),
+  disc_pct: z.number().min(0).max(100).optional(),
+  vat_pct: z.number().min(0).optional(),
+})
+
+const createInvoiceSchema = z.object({
+  case_id: z.string().uuid().optional(),
+  client_id: z.string().uuid().optional(),
+  line_items: z.array(lineItemSchema).optional(),
+  reference: z.string().optional(),
+  date: z.string().optional(),
+  due_date: z.string().optional(),
+  sales_rep: z.string().optional(),
+  overall_discount_pct: z.number().min(0).max(100).optional(),
+  vat_pct: z.number().min(0).optional(),
+  notes: z.string().optional(),
+  payment_terms_days: z.number().int().min(0).optional(),
+})
 
 async function getUserOrgId(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,7 +66,15 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { orgId, userId } = await getUserOrgId(supabase)
-    const body = await request.json()
+    const rawBody = await request.json()
+    const parseResult = createInvoiceSchema.safeParse(rawBody)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parseResult.error.flatten() },
+        { status: 400 }
+      )
+    }
+    const body = parseResult.data
 
     const {
       case_id, client_id: clientIdParam, line_items,

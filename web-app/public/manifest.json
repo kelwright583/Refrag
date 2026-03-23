@@ -2,10 +2,14 @@
   "name": "Refrag - Professional Workflow OS",
   "short_name": "Refrag",
   "description": "Evidence-to-outcome engine for independent assessors, loss adjusters, and investigators",
-  "start_url": "/",
+  "start_url": "/app/dashboard",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "theme_color": "#C72A00",
   "background_color": "#ffffff",
+  "categories": ["productivity", "business"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -18,6 +22,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Case",
+      "short_name": "New Case",
+      "url": "/app/cases?new=1",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Capture",
+      "short_name": "Capture",
+      "url": "/app/field/capture",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

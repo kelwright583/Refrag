@@ -92,7 +92,7 @@ export default function ProfileSettingsPage() {
           banking_details: bd,
         })
         if (org.logo_storage_path) {
-          const { data: url } = supabase.storage.from('evidence').createSignedUrl(org.logo_storage_path, 3600)
+          const { data: url } = await supabase.storage.from('evidence').createSignedUrl(org.logo_storage_path, 3600)
           setLogoUrl(url?.signedUrl || null)
         }
       }

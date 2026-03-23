@@ -60,17 +60,17 @@ export async function trackServerEvent(
       }
     }
 
-    supabase
-      .from('platform_events')
-      .insert({
-        org_id: orgId ?? null,
-        user_id: userId ?? null,
-        event_name: eventName,
-        event_props: props ?? {},
-        vertical: context?.vertical ?? null,
-      })
-      .then(() => {})
-      .catch(() => {})
+    void Promise.resolve(
+      supabase
+        .from('platform_events')
+        .insert({
+          org_id: orgId ?? null,
+          user_id: userId ?? null,
+          event_name: eventName,
+          event_props: props ?? {},
+          vertical: context?.vertical ?? null,
+        })
+    ).catch(() => {})
   } catch {
     // Telemetry must never break the app
   }

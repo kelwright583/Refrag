@@ -188,14 +188,14 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
   const grandTotal = assessment.repair_line_items.reduce((sum, item) => {
     const total = computeLineItemTotal({
       parts_cost: item.parts_cost,
-      labour_cost: item.labour_cost,
+      labour_hours: item.labour_hours,
+      labour_rate: item.labour_rate,
       paint_cost: item.paint_cost,
       paint_materials_cost: item.paint_materials_cost,
       strip_assm_cost: item.strip_assm_cost,
       frame_cost: item.frame_cost,
       misc_cost: item.misc_cost,
       qty: item.qty,
-      is_approved: item.is_approved,
     })
     return sum + total
   }, 0)
@@ -378,14 +378,14 @@ export function DamagesLabourTab({ assessment, onNavigate }: Props) {
           {assessment.repair_line_items.map((item) => {
             const total = computeLineItemTotal({
               parts_cost: item.parts_cost,
-              labour_cost: item.labour_cost,
+              labour_hours: item.labour_hours,
+              labour_rate: item.labour_rate,
               paint_cost: item.paint_cost,
               paint_materials_cost: item.paint_materials_cost,
               strip_assm_cost: item.strip_assm_cost,
               frame_cost: item.frame_cost,
               misc_cost: item.misc_cost,
               qty: item.qty,
-              is_approved: item.is_approved,
             })
             const isExpanded = expandedRows.has(item.id)
 

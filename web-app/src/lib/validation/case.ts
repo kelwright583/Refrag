@@ -15,6 +15,7 @@ export const createCaseSchema = z.object({
   location: z.string().optional(),
   status: z.enum(['draft', 'assigned', 'site_visit', 'awaiting_quote', 'reporting', 'submitted', 'additional', 'closed']).optional(),
   priority: z.enum(['low', 'normal', 'high']).optional(),
+  vertical: z.string().optional(),
 });
 
 export const updateCaseSchema = createCaseSchema.partial();

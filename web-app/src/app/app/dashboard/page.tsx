@@ -16,8 +16,12 @@ import {
   Circle,
   X,
   Rocket,
+  Search,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react'
 import { formatTime } from '@/lib/utils/formatting'
+import type { Case } from '@/lib/types/case'
 
 const CASE_STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
@@ -112,10 +116,317 @@ function useGettingStarted(caseCount: number) {
   return { status, loading, dismissed, dismiss }
 }
 
+// ---------------------------------------------------------------------------
+// Fetch org vertical
+// ---------------------------------------------------------------------------
+
+function useOrgVertical() {
+  const [vertical, setVertical] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetch_() {
+      try {
+        const res = await fetch('/api/org/specialisations')
+        if (res.ok) {
+          const data = await res.json()
+          const specialisations: string[] = data.specialisations || []
+          // Primary vertical is the first specialisation; fall back to 'general'
+          setVertical(specialisations[0] ?? 'general')
+        }
+      } catch {
+        setVertical('general')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetch_()
+  }, [])
+
+  return { vertical, loading }
+}
+
+// ---------------------------------------------------------------------------
+// Fetch invoices (outstanding)
+// ---------------------------------------------------------------------------
+
+interface InvoiceSummary {
+  id: string
+  invoice_number: string
+  amount: number
+  grand_total: number
+  currency: string
+  status: string
+  created_at: string
+  date: string
+  case?: { id: string; case_number: string } | null
+}
+
+function useOutstandingInvoices() {
+  const [invoices, setInvoices] = useState<InvoiceSummary[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetch_() {
+      try {
+        const res = await fetch('/api/invoices')
+        if (res.ok) {
+          const data: InvoiceSummary[] = await res.json()
+          setInvoices(data.filter((inv) => inv.status === 'draft' || inv.status === 'sent'))
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetch_()
+  }, [])
+
+  return { invoices, loading }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function daysSince(isoDate: string): number {
+  const ms = Date.now() - new Date(isoDate).getTime()
+  return Math.floor(ms / (1000 * 60 * 60 * 24))
+}
+
+function AgeBadge({ days }: { days: number }) {
+  if (days > 14) {
+    return (
+      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-700">
+        {days}d
+      </span>
+    )
+  }
+  if (days >= 7) {
+    return (
+      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
+        {days}d
+      </span>
+    )
+  }
+  return (
+    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+      {days}d
+    </span>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Investigator widgets
+// ---------------------------------------------------------------------------
+
+const ACTIVE_INVESTIGATION_STATUSES = ['assigned', 'site_visit', 'reporting']
+
+function OpenInvestigationsWidget({ cases }: { cases: Case[] }) {
+  const openCases = useMemo(
+    () => cases.filter((c) => ACTIVE_INVESTIGATION_STATUSES.includes(c.status)),
+    [cases],
+  )
+
+  return (
+    <div className="bg-white border border-[#D4CFC7] rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-copper/10">
+            <Search className="w-4 h-4 text-copper" />
+          </div>
+          <h3 className="font-semibold text-charcoal">Open Investigations</h3>
+        </div>
+        <span className="text-2xl font-bold text-copper">{openCases.length}</span>
+      </div>
+
+      {openCases.length === 0 ? (
+        <p className="text-sm text-muted">No active investigations.</p>
+      ) : (
+        <div className="space-y-2">
+          {openCases.slice(0, 5).map((c) => {
+            const age = daysSince(c.created_at)
+            return (
+              <Link
+                key={c.id}
+                href={`/app/cases/${c.id}`}
+                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[#F5F2EE] transition-colors -mx-1"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-charcoal truncate">{c.case_number}</p>
+                  <p className="text-xs text-muted truncate">{c.client_name}</p>
+                </div>
+                <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                  <AgeBadge days={age} />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted" />
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+
+      <Link
+        href="/app/cases"
+        className="inline-block mt-3 text-xs font-medium text-accent hover:underline"
+      >
+        View all cases →
+      </Link>
+    </div>
+  )
+}
+
+function OverdueMandatesWidget({ cases }: { cases: Case[] }) {
+  // Cases that are active and older than 14 days without being submitted/closed
+  const overdueCases = useMemo(
+    () =>
+      cases.filter((c) => {
+        if (c.status === 'submitted' || c.status === 'closed') return false
+        return daysSince(c.created_at) > 14
+      }),
+    [cases],
+  )
+
+  return (
+    <div className="bg-white border border-[#D4CFC7] rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-amber-100">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+          </div>
+          <h3 className="font-semibold text-charcoal">Overdue Mandates</h3>
+        </div>
+        <span className="text-2xl font-bold text-amber-600">{overdueCases.length}</span>
+      </div>
+
+      {overdueCases.length === 0 ? (
+        <p className="text-sm text-muted">All mandates are on track.</p>
+      ) : (
+        <div className="space-y-2">
+          {overdueCases.slice(0, 5).map((c) => {
+            const age = daysSince(c.created_at)
+            return (
+              <Link
+                key={c.id}
+                href={`/app/cases/${c.id}`}
+                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[#F5F2EE] transition-colors -mx-1"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-charcoal truncate">{c.case_number}</p>
+                  <p className="text-xs text-muted truncate">
+                    {CASE_STATUS_LABELS[c.status] ?? c.status}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                  <AgeBadge days={age} />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted" />
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+
+      <Link
+        href="/app/cases"
+        className="inline-block mt-3 text-xs font-medium text-accent hover:underline"
+      >
+        View cases →
+      </Link>
+    </div>
+  )
+}
+
+function FeeNotesWidget({
+  invoices,
+  loading,
+}: {
+  invoices: InvoiceSummary[]
+  loading: boolean
+}) {
+  const totalOutstanding = useMemo(
+    () => invoices.reduce((sum, inv) => sum + (inv.grand_total || inv.amount || 0), 0),
+    [invoices],
+  )
+
+  const currency = invoices[0]?.currency ?? 'R'
+
+  const fmtAmount = (amount: number, curr: string) => {
+    const sym = curr === 'ZAR' ? 'R' : curr === 'USD' ? '$' : curr === 'GBP' ? '£' : curr
+    return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  return (
+    <div className="bg-white border border-[#D4CFC7] rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-slate/10">
+            <Receipt className="w-4 h-4 text-charcoal" />
+          </div>
+          <h3 className="font-semibold text-charcoal">Fee Notes Outstanding</h3>
+        </div>
+        {!loading && invoices.length > 0 && (
+          <span className="text-sm font-bold text-charcoal">
+            {fmtAmount(totalOutstanding, currency)}
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted">Loading...</p>
+      ) : invoices.length === 0 ? (
+        <p className="text-sm text-muted">No outstanding fee notes.</p>
+      ) : (
+        <div className="space-y-2">
+          {invoices.slice(0, 5).map((inv) => {
+            const age = daysSince(inv.date || inv.created_at)
+            return (
+              <div
+                key={inv.id}
+                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[#F5F2EE] transition-colors -mx-1"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-charcoal truncate">
+                    {inv.case?.case_number ?? inv.invoice_number}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {fmtAmount(inv.grand_total || inv.amount || 0, inv.currency)}
+                    {' · '}
+                    <span className={inv.status === 'sent' ? 'text-amber-600' : 'text-slate'}>
+                      {inv.status === 'sent' ? 'Sent' : 'Draft'}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                  <AgeBadge days={age} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <Link
+        href="/app/invoices"
+        className="inline-block mt-3 text-xs font-medium text-accent hover:underline"
+      >
+        View invoices →
+      </Link>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main dashboard
+// ---------------------------------------------------------------------------
+
 export default function DashboardPage() {
   const { data: cases, isLoading: casesLoading } = useCases()
   const { data: todayAppointments, isLoading: appointmentsLoading } = useTodayAppointments()
   const { data: clients } = useClients()
+  const { vertical: orgVertical } = useOrgVertical()
+  const { invoices: outstandingInvoices, loading: invoicesLoading } = useOutstandingInvoices()
 
   const caseCount = (cases || []).length
   const { status: setupStatus, loading: setupLoading, dismissed, dismiss } = useGettingStarted(caseCount)
@@ -172,6 +483,8 @@ export default function DashboardPage() {
   const allDone = completedCount === totalChecklist
 
   const showChecklist = !setupLoading && setupStatus && !dismissed && !allDone
+
+  const isInvestigatorOrg = orgVertical === 'investigator'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -360,6 +673,25 @@ export default function DashboardPage() {
             >
               View all cases →
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Investigator Workspace — only shown for investigator orgs            */}
+      {/* ------------------------------------------------------------------ */}
+      {isInvestigatorOrg && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1.5 rounded-lg bg-copper/10">
+              <Clock className="w-4 h-4 text-copper" />
+            </div>
+            <h2 className="text-base font-semibold text-charcoal">Investigator Workspace</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+            <OpenInvestigationsWidget cases={cases || []} />
+            <OverdueMandatesWidget cases={cases || []} />
+            <FeeNotesWidget invoices={outstandingInvoices} loading={invoicesLoading} />
           </div>
         </div>
       )}

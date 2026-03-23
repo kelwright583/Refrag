@@ -55,6 +55,9 @@ export interface ReportSectionTemplate {
   description: string
   isRequired: boolean
   aiDraftAvailable: boolean
+  /** For sections that are auto-populated rather than manually edited.
+   * The string is a human-readable source name shown as a helper notice. */
+  autoPopulatedFrom?: string
 }
 
 export interface VerticalConfig {
@@ -651,16 +654,18 @@ const investigator: VerticalConfig = {
     {
       key: 'cover_page',
       heading: 'Cover Page',
-      description: 'Confidential cover with reference, date, classification',
+      description: 'Confidential cover with reference, date, classification — rendered automatically from case metadata',
       isRequired: true,
       aiDraftAvailable: false,
+      autoPopulatedFrom: 'case metadata',
     },
     {
       key: 'mandate',
       heading: 'Mandate & Instruction',
       description: 'Referral source, mandate scope, specific questions to address',
       isRequired: true,
-      aiDraftAvailable: true,
+      aiDraftAvailable: false,
+      autoPopulatedFrom: 'referral details (Overview tab)',
     },
     {
       key: 'methodology',
@@ -674,28 +679,32 @@ const investigator: VerticalConfig = {
       heading: 'Parties Involved',
       description: 'Subjects, witnesses, third parties identified during investigation',
       isRequired: true,
-      aiDraftAvailable: true,
+      aiDraftAvailable: false,
+      autoPopulatedFrom: 'case contacts (Contacts section)',
     },
     {
       key: 'findings',
       heading: 'Findings',
       description: 'Numbered findings with supporting evidence references',
       isRequired: true,
-      aiDraftAvailable: true,
+      aiDraftAvailable: false,
+      autoPopulatedFrom: 'investigation findings (Assessment tab)',
     },
     {
       key: 'evidence_annexure',
       heading: 'Evidence Annexure',
-      description: 'Index of evidence items with descriptions and references',
+      description: 'Index of all evidence attached to this case',
       isRequired: true,
       aiDraftAvailable: false,
+      autoPopulatedFrom: 'evidence attached to this case (Capture tab) — auto-generated on export',
     },
     {
       key: 'red_flag_summary',
       heading: 'Red Flag Summary',
       description: 'Summary of red flags and indicators identified',
       isRequired: false,
-      aiDraftAvailable: true,
+      aiDraftAvailable: false,
+      autoPopulatedFrom: 'red flags (Assessment tab)',
     },
     {
       key: 'outcome',

@@ -1,3 +1,11 @@
+> ⚠️ **ARCHIVED — This native app has been superseded.**
+>
+> The Expo/React Native native mobile app has been replaced by the PWA field routes
+> at `/app/field/` in the web app. This directory is kept for reference only.
+>
+> **New field experience:** `web-app/src/app/field/`
+> Add to home screen from: `https://your-app-url/app/field/dashboard`
+
 # Refrag Mobile App
 
 Professional workflow OS for assessors/inspectors - Mobile Field Capture App.

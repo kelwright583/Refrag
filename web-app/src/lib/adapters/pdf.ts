@@ -20,11 +20,49 @@ const DEFAULT_OPTIONS: Required<PdfOptions> = {
 }
 
 // ---------------------------------------------------------------------------
+// @sparticuz/chromium + puppeteer-core — serverless/Vercel PDF rendering
+// ---------------------------------------------------------------------------
+
+export class SparticuzChromiumAdapter implements PdfGenerationAdapter {
+  async generatePdf(html: string, options?: PdfOptions): Promise<Buffer> {
+    // @ts-expect-error — optional peer dep
+    const chromium = (await import('@sparticuz/chromium')).default
+    // @ts-expect-error — optional peer dep
+    const puppeteer = (await import('puppeteer-core')).default
+
+    const opts = { ...DEFAULT_OPTIONS, ...options }
+
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    })
+
+    try {
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: 'networkidle0' })
+
+      const pdfBuffer = await page.pdf({
+        format: opts.format,
+        printBackground: opts.printBackground,
+        margin: opts.margin,
+      })
+
+      return Buffer.from(pdfBuffer)
+    } finally {
+      await browser.close()
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Playwright — headless Chromium PDF rendering
 // ---------------------------------------------------------------------------
 
 export class PlaywrightPdfAdapter implements PdfGenerationAdapter {
   async generatePdf(html: string, options?: PdfOptions): Promise<Buffer> {
+    // @ts-expect-error — playwright is an optional peer dep, installed at deploy time
     const { chromium } = await import('playwright')
     const opts = { ...DEFAULT_OPTIONS, ...options }
 
@@ -126,6 +164,17 @@ export class StubPdfAdapter implements PdfGenerationAdapter {
 
 export async function getPdfGenerator(): Promise<PdfGenerationAdapter> {
   try {
+    // @ts-expect-error — optional peer dep
+    await import('@sparticuz/chromium')
+    // @ts-expect-error — optional peer dep
+    await import('puppeteer-core')
+    return new SparticuzChromiumAdapter()
+  } catch {
+    // @sparticuz/chromium or puppeteer-core not installed — try Playwright
+  }
+
+  try {
+    // @ts-expect-error — playwright is an optional peer dep
     await import('playwright')
     return new PlaywrightPdfAdapter()
   } catch {
@@ -140,7 +189,7 @@ export async function getPdfGenerator(): Promise<PdfGenerationAdapter> {
   }
 
   console.warn(
-    '[PDF] Neither playwright nor pdfkit available — using stub adapter.',
+    '[PDF] No PDF generation library available — using stub adapter.',
   )
   return new StubPdfAdapter()
 }

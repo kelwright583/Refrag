@@ -7,6 +7,7 @@ import { ToastProvider } from '@/components/Toast'
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
 import { CommsProvider } from '@/components/comms/CommsProvider'
+import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const anekBangla = Anek_Bangla({
@@ -19,6 +20,11 @@ export const metadata: Metadata = {
   title: 'Refrag - Professional Workflow OS',
   description: 'Professional workflow OS for assessors/inspectors',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Refrag',
+  },
 }
 
 export const viewport: Viewport = {
@@ -40,6 +46,7 @@ export default function RootLayout({
                 <CommsProvider>
                   {children}
                   <PWAInstallPrompt />
+                  <ServiceWorkerRegistration />
                 </CommsProvider>
               </GoogleMapsProvider>
             </ToastProvider>

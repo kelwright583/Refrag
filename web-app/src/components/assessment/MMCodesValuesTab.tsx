@@ -22,7 +22,7 @@ export function MMCodesValuesTab({ assessment, onNavigate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const v = assessment.vehicle_values
-  const mmValuationDocs = assessment.assessment_documents?.filter((d) => d.document_type === 'mm_valuation' || d.document_type === 'valuation') ?? []
+  const mmValuationDocs = assessment.assessment_documents?.filter((d) => d.document_type === 'mm_valuation') ?? []
 
   const [form, setForm] = useState({
     source: v?.source ?? 'mm_guide',

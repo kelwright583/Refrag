@@ -9,6 +9,7 @@ import {
   UpdateRequirementInput,
   AssignMandateInput,
   UpdateRequirementCheckInput,
+  CaseRequirementCheck,
 } from '@/lib/types/mandate'
 
 export const mandateKeys = {
@@ -124,12 +125,12 @@ export function useCaseMandates(caseId: string) {
 }
 
 export function useRequirementChecks(caseId: string) {
-  return useQuery({
+  return useQuery<CaseRequirementCheck[]>({
     queryKey: ['requirement-checks', caseId],
     queryFn: async () => {
       const res = await fetch(`/api/cases/${caseId}/requirement-checks`)
       if (!res.ok) throw new Error('Failed to fetch requirement checks')
-      return res.json()
+      return res.json() as Promise<CaseRequirementCheck[]>
     },
     enabled: !!caseId,
   })

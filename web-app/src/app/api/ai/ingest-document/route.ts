@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimitResponse } from '@/lib/api/server-utils'
 import { getOpenAIClient } from '@/lib/ai/openai'
 import { INGEST_DOCUMENT_SYSTEM, INGEST_DOCUMENT_USER } from '@/lib/ai/prompts'
 import { sanitiseForAI, summariseInput } from '@/lib/ai/sanitiser'
@@ -34,8 +35,9 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string, o
   // PDF — use pdf-parse (local, no external API)
   if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
     try {
-      const pdfParse = (await import('pdf-parse')).default
-      const data = await pdfParse(buffer)
+      const { PDFParse } = await import('pdf-parse')
+      const parser = new PDFParse({ data: buffer })
+      const data = await parser.getText()
       return data.text
     } catch {
       return ''
@@ -96,6 +98,9 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string, o
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
+
+  const limit = rateLimitResponse(request)
+  if (limit) return limit
 
   try {
     const supabase = await createClient()

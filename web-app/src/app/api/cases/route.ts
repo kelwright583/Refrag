@@ -4,7 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { Case, CreateCaseInput } from '@/lib/types/case'
+import { getAuthContext } from '@/lib/api/server-utils'
+import { createCaseSchema } from '@/lib/validation/case'
+import { Case } from '@/lib/types/case'
 import { trackServerEvent } from '@/lib/events'
 
 /**
@@ -75,7 +77,15 @@ export async function POST(request: NextRequest) {
     }
 
     const orgId = await getUserOrgId(supabase)
-    const body: CreateCaseInput = await request.json()
+    const rawBody = await request.json()
+    const parsed = createCaseSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+    const body = parsed.data
 
     // Fetch org slug for case number generation
     const { data: org, error: orgError } = await supabase
@@ -111,6 +121,7 @@ export async function POST(request: NextRequest) {
         case_number,
         status: body.status || 'draft',
         priority: body.priority || 'normal',
+        vertical: body.vertical || null,
       })
       .select()
       .single()

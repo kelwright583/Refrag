@@ -32,7 +32,9 @@ export interface Case {
   location: string | null;
   status: CaseStatus;
   priority: CasePriority;
+  vertical: string | null;
   primary_risk_item_id: string | null;
+  mandate_id: string | null;
   repair_estimate_amount: number | null;
   write_off_status: WriteOffStatus | null;
   created_at: string;
@@ -55,6 +57,7 @@ export interface CreateCaseInput {
   location?: string;
   status?: CaseStatus;
   priority?: CasePriority;
+  vertical?: string;
 }
 
 export interface UpdateCaseInput extends Partial<CreateCaseInput> {

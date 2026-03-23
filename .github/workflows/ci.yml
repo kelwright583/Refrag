@@ -1,5 +1,7 @@
 name: CI
 
+# mobile-app build disabled — superseded by PWA field routes at web-app/src/app/field/
+
 on:
   push:
     branches: [main, develop]

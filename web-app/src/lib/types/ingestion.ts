@@ -63,6 +63,8 @@ export interface ExtractionResult {
   vehicle_vin?: ExtractedField
   vehicle_engine_number?: ExtractedField
   vehicle_mm_code?: ExtractedField
+  vehicle_identifier_type?: ExtractedField
+  vehicle_identifier_value?: ExtractedField
   vehicle_colour?: ExtractedField
 
   // ── Repairer quote fields ─────────────────────────────────────────────────

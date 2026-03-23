@@ -4,7 +4,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { UpdateContactInput } from '@/lib/types/contact'
+import { z } from 'zod'
+
+const contactTypeSchema = z.enum(['insured', 'broker', 'insurer', 'panelbeater', 'other'])
+
+const updateContactSchema = z.object({
+  type: contactTypeSchema.optional(),
+  name: z.string().min(1, 'Name is required').optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional(),
+})
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -39,11 +48,18 @@ export async function PATCH(
   try {
     const supabase = await createClient()
     const orgId = await getUserOrgId(supabase)
-    const updates: UpdateContactInput = await request.json()
+    const rawBody = await request.json()
+    const parsed = updateContactSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
 
     const { data, error } = await supabase
       .from('case_contacts')
-      .update(updates)
+      .update(parsed.data)
       .eq('id', params.contactId)
       .eq('case_id', params.caseId)
       .eq('org_id', orgId)

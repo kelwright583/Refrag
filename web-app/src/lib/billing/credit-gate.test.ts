@@ -93,6 +93,7 @@ describe('checkAndDeductPackCredit', () => {
         return createMockChain({ data: null, error: null })
       })
 
+      // @ts-expect-error — vitest mock type
       vi.mocked(await import('@/lib/supabase/service')).createServiceClient = () =>
         ({ from: originalFrom }) as any
 
@@ -122,6 +123,7 @@ describe('checkAndDeductPackCredit', () => {
       }
 
       let callCount = 0
+      // @ts-expect-error — vitest mock type
       vi.mocked(await import('@/lib/supabase/service')).createServiceClient = () =>
         ({
           from: vi.fn((table: string) => {
@@ -170,6 +172,7 @@ describe('checkAndDeductPackCredit', () => {
       }
 
       let callCount = 0
+      // @ts-expect-error — vitest mock type
       vi.mocked(await import('@/lib/supabase/service')).createServiceClient = () =>
         ({
           from: vi.fn((table: string) => {
@@ -209,6 +212,7 @@ describe('checkAndDeductPackCredit', () => {
       }
 
       let callCount = 0
+      // @ts-expect-error — vitest mock type
       vi.mocked(await import('@/lib/supabase/service')).createServiceClient = () =>
         ({
           from: vi.fn((table: string) => {
@@ -244,6 +248,7 @@ describe('checkAndDeductPackCredit', () => {
         single: vi.fn().mockReturnValue({ data: orgData, error: null }),
       }
 
+      // @ts-expect-error — vitest mock type
       vi.mocked(await import('@/lib/supabase/service')).createServiceClient = () =>
         ({
           from: vi.fn((table: string) => {
@@ -266,6 +271,7 @@ describe('checkAndDeductPackCredit', () => {
         single: vi.fn().mockReturnValue({ data: null, error: { message: 'not found' } }),
       }
 
+      // @ts-expect-error — vitest mock type
       vi.mocked(await import('@/lib/supabase/service')).createServiceClient = () =>
         ({
           from: vi.fn((table: string) => {

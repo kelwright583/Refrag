@@ -12,7 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthContext, serverError } from '@/lib/api/server-utils'
+import { getAuthContext, serverError, rateLimitResponse } from '@/lib/api/server-utils'
 import { getOpenAIClient } from '@/lib/ai/openai'
 import { sanitiseForAI } from '@/lib/ai/sanitiser'
 
@@ -69,8 +69,9 @@ async function extractText(
 ): Promise<{ text: string; method: string }> {
   if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
     try {
-      const pdfParse = (await import('pdf-parse')).default
-      const data = await pdfParse(buffer)
+      const { PDFParse } = await import('pdf-parse')
+      const parser = new PDFParse({ data: buffer })
+      const data = await parser.getText()
       if (data.text?.trim()) return { text: data.text, method: 'pdf-parse' }
     } catch { /* fall through */ }
   }
@@ -108,6 +109,9 @@ async function extractText(
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
+
+  const limit = rateLimitResponse(request)
+  if (limit) return limit
 
   try {
     const { supabase, orgId, user, error } = await getAuthContext()

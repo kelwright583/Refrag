@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { CreateExportInput } from '@/lib/types/export'
+import { createExportSchema } from '@/lib/validation/export'
 
 async function getUserOrgId(supabase: any): Promise<string> {
   const {
@@ -84,7 +84,15 @@ export async function POST(
     }
 
     const orgId = await getUserOrgId(supabase)
-    const body: CreateExportInput = await request.json()
+    const rawBody = await request.json()
+    const parsed = createExportSchema.safeParse({ ...rawBody, case_id: rawBody.case_id ?? params.id })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+    const body = parsed.data
 
     // Create export record (PDF will be generated in a separate endpoint)
     const { data, error } = await supabase
@@ -92,9 +100,9 @@ export async function POST(
       .insert({
         org_id: orgId,
         case_id: params.id,
-        report_id: body.report_id || null,
-        assessment_id: body.assessment_id || null,
-        export_type: body.export_type || 'assessor_pack',
+        report_id: body.report_id ?? null,
+        assessment_id: body.assessment_id ?? null,
+        export_type: body.export_type,
         meta: {},
       })
       .select()

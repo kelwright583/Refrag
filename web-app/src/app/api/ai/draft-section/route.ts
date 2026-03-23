@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimitResponse } from '@/lib/api/server-utils'
 import { getOpenAIClient } from '@/lib/ai/openai'
 import { sanitiseForAI, summariseInput } from '@/lib/ai/sanitiser'
 import { VERTICAL_CONFIGS, type VerticalId } from '@/lib/verticals/config'
@@ -33,6 +34,9 @@ Rules:
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
+
+  const limit = rateLimitResponse(request)
+  if (limit) return limit
 
   try {
     const supabase = await createClient()
@@ -74,6 +78,12 @@ Context data (PII redacted):
 ${sanitisedContext}
 
 Write this section in Markdown. Keep it concise but thorough.`
+
+    // Graceful fallback when OpenAI is not configured
+    if (!process.env.OPENAI_API_KEY) {
+      const stubContent = `## ${sectionTemplate.heading}\n\n*AI drafting is not available — OPENAI_API_KEY is not configured.*\n\nPlease write this section manually.`
+      return NextResponse.json({ content: stubContent, section_key, stub: true })
+    }
 
     const openai = getOpenAIClient()
     const response = await openai.chat.completions.create({

@@ -91,7 +91,34 @@ export class StripeAdapter implements PaymentAdapter {
 
     return {
       type: event.type,
-      data: event.data.object as Record<string, unknown>,
+      data: event.data.object as unknown as Record<string, unknown>,
+    }
+  }
+
+  /**
+   * Static helper for webhook routes that need to verify and parse a Stripe
+   * event without instantiating the full adapter.
+   */
+  static async constructEvent(
+    rawBody: string,
+    signature: string,
+  ): Promise<WebhookEvent> {
+    const secretKey = process.env.STRIPE_SECRET_KEY
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is required')
+    }
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (!webhookSecret) {
+      throw new Error('STRIPE_WEBHOOK_SECRET is required')
+    }
+
+    const Stripe = (await import('stripe')).default
+    const stripe = new Stripe(secretKey)
+    const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
+
+    return {
+      type: event.type,
+      data: event.data.object as unknown as Record<string, unknown>,
     }
   }
 

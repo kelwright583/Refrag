@@ -43,6 +43,7 @@ export default function AssessmentPage() {
   const caseId = params.id as string
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('instruction')
+  const handleNavigate = useCallback((tab: string) => setActiveTab(tab as TabKey), [])
   const createAssessment = useCreateAssessment()
 
   const { data: caseData } = useCase(caseId)
@@ -240,31 +241,31 @@ export default function AssessmentPage() {
       {/* Tab content */}
       <div>
         {activeTab === 'instruction' && (
-          <InstructionTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <InstructionTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'vehicle' && (
-          <VehicleDetailsTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <VehicleDetailsTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'tyres' && (
-          <TyresTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <TyresTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'damages' && (
-          <DamagesLabourTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <DamagesLabourTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'parts' && (
-          <PartsAssessmentTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <PartsAssessmentTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'values' && (
-          <MMCodesValuesTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <MMCodesValuesTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'photos' && (
-          <PhotosEvidenceTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <PhotosEvidenceTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'outcome' && (
-          <OutcomeFinancialsTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <OutcomeFinancialsTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
         {activeTab === 'findings' && (
-          <FindingsTab assessment={fullAssessment} onNavigate={setActiveTab} />
+          <FindingsTab assessment={fullAssessment} onNavigate={handleNavigate} />
         )}
       </div>
     </div>
